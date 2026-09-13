@@ -1,7 +1,8 @@
 # AI-Enabled Pose Detection and Biomechanical Analysis System for Automated Physiotherapy Feedback and Yoga Posture Assessment
 
 **Authors:**  
-AI Physiotherapy & Computer Vision Research Group  
+Tushilesh Borse, Kartik Suryavanshi  
+*AI Physiotherapy & Computer Vision Research Group*  
 *Department of Computer Science & Engineering*  
 *Specialization in Computer Vision, Biomechanics, and Automated Healthcare Systems*  
 

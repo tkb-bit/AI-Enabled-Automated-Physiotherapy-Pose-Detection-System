@@ -113,3 +113,11 @@ ai yoga/
 6. Intentionally flare elbow -> Observe **Red Glowing Joint Circle** over elbow and spoken voice feedback: *"Keep your elbow closer to your body."*
 7. Click **End Session & Save Report** -> View comprehensive **Session Report**.
 8. Inspect **Progress Analytics** & **Rehab Guide**.
+
+---
+
+## 👥 Contributors
+
+- **Kartik Suryavanshi** ([@KartikSuryavanshi](https://github.com/KartikSuryavanshi/)) — Core Contributor
+- **Tushilesh Borse** ([@tkb-bit](https://github.com/tkb-bit/)) — Core Contributor
+
