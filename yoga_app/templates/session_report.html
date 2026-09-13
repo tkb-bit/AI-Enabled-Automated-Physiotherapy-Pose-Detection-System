@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Session Report — {{ report.exercise }} — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 2rem auto;">
+  <!-- Header Banner -->
+  <div style="text-align: center; margin-bottom: 3rem;">
+    <div style="display: inline-flex; padding: 0.6rem 1.4rem; background: rgba(0, 230, 118, 0.12); border: 1px solid rgba(0, 230, 118, 0.3); border-radius: var(--radius-full); color: var(--status-success); font-weight: 700; margin-bottom: 1rem;">
+      <i class="fa-solid fa-circle-check" style="margin-right: 0.5rem;"></i> SESSION COMPLETE
+    </div>
+    <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 800;">
+      {{ report.exercise }} Report
+    </h1>
+    <p style="color: var(--text-muted); font-size: 1rem;">Recorded on {{ report.created_at[:19] }}</p>
+  </div>
+
+  <!-- Hero Score & Breakdown Grid -->
+  <div style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; margin-bottom: 3rem;">
+    <!-- Form Score Hero Card -->
+    <div class="card" style="text-align: center; justify-content: center; align-items: center; background: linear-gradient(135deg, rgba(0,242,254,0.1) 0%, rgba(79,172,254,0.05) 100%); border-color: var(--border-glow);">
+      <span class="metric-label">OVERALL FORM SCORE</span>
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 4rem; font-weight: 800; color: var(--status-success); line-height: 1; margin: 1rem 0;">
+        {{ report.form_score|int }}
+      </div>
+      <span style="color: var(--text-muted); font-size: 0.9rem;">out of 100 points</span>
+    </div>
+
+    <!-- Breakdown Gauges -->
+    <div class="card">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 1.5rem;">Performance Breakdown</h3>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+            <span>AI Detection Confidence</span>
+            <span style="color: var(--accent-cyan);">{{ report.accuracy|int }}%</span>
+          </div>
+          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width: {{ report.accuracy }}%;"></div></div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+            <span>Movement Quality</span>
+            <span style="color: var(--status-success);">89%</span>
+          </div>
+          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width: 89%; background: var(--status-success);"></div></div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+            <span>Range of Motion (ROM)</span>
+            <span style="color: var(--status-warning);">87%</span>
+          </div>
+          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width: 87%; background: var(--status-warning);"></div></div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+            <span>Repetition Consistency</span>
+            <span style="color: var(--status-success);">94%</span>
+          </div>
+          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width: 94%; background: var(--status-success);"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Qualities & Improvements Grid -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+    <!-- What You Did Well -->
+    <div class="card" style="border-left: 4px solid var(--status-success);">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: var(--status-success); margin-bottom: 1rem;">
+        <i class="fa-solid fa-circle-check"></i> WHAT YOU DID WELL
+      </h3>
+      <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.95rem;">
+        <li><i class="fa-solid fa-check" style="color: var(--status-success); margin-right: 0.5rem;"></i> Good shoulder alignment throughout rotation</li>
+        <li><i class="fa-solid fa-check" style="color: var(--status-success); margin-right: 0.5rem;"></i> Upright spine posture with stable hips</li>
+        <li><i class="fa-solid fa-check" style="color: var(--status-success); margin-right: 0.5rem;"></i> Consistent speed & smooth repetition control</li>
+      </ul>
+    </div>
+
+    <!-- Needs Improvement -->
+    <div class="card" style="border-left: 4px solid var(--status-warning);">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: var(--status-warning); margin-bottom: 1rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i> NEEDS IMPROVEMENT
+      </h3>
+      <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.95rem;">
+        <li><i class="fa-solid fa-exclamation" style="color: var(--status-warning); margin-right: 0.5rem;"></i> Keep elbow closer to your body during upper rotation sweep</li>
+        <li><i class="fa-solid fa-exclamation" style="color: var(--status-warning); margin-right: 0.5rem;"></i> Slightly expand your full range of motion at peak elevation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AI Recommendation Banner -->
+  <div style="background: rgba(0, 242, 254, 0.06); border: 1px solid var(--border-glow); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 3rem;">
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; color: var(--accent-cyan); margin-bottom: 0.6rem;">
+      <i class="fa-solid fa-robot"></i> AI REHABILITATION RECOMMENDATION
+    </h3>
+    <p style="font-size: 1.05rem; color: var(--text-main);">
+      "Continue practicing controlled {{ report.exercise }} twice daily. Focus on maintaining elbow proximity to your torso during rotation to optimize shoulder joint capsule mobility."
+    </p>
+  </div>
+
+  <!-- Navigation Action -->
+  <div style="text-align: center;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1rem;">
+      <i class="fa-solid fa-house"></i> Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

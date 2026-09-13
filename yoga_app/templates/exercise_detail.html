@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ exercise_name }} Guide — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 2rem auto;">
+  <a href="{{ url_for('exercises') }}" class="btn btn-secondary" style="margin-bottom: 1.5rem; display: inline-flex;"><i class="fa-solid fa-arrow-left"></i> Back to Exercise Library</a>
+
+  <div class="card" style="margin-bottom: 2rem; border-color: var(--border-glow);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+      <div>
+        <span class="hud-badge" style="margin-bottom: 0.8rem; display: inline-flex;">PHYSIOTHERAPY GUIDELINE</span>
+        <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700;">{{ exercise_name }}</h1>
+      </div>
+      <a href="{{ url_for('assessment', exercise=exercise_name) }}" class="btn btn-primary" style="padding: 0.9rem 1.8rem;">
+        <i class="fa-solid fa-camera"></i> Start AI Assessment
+      </a>
+    </div>
+
+    <!-- Overview Grid -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; background: rgba(255,255,255,0.03); padding: 1.2rem; border-radius: var(--radius-md); border: 1px solid var(--border-light); margin-bottom: 1.8rem;">
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-subtle);">DIFFICULTY</div>
+        <div style="font-weight: 600; color: #fff;">Beginner</div>
+      </div>
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-subtle);">TARGET AREA</div>
+        <div style="font-weight: 600; color: var(--accent-cyan);">Rotator Cuff & Posture</div>
+      </div>
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-subtle);">RECOMMENDED REPS</div>
+        <div style="font-weight: 600; color: #fff;">15 Repetitions</div>
+      </div>
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-subtle);">DURATION</div>
+        <div style="font-weight: 600; color: var(--status-success);">5 Minutes</div>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Instructions -->
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 1rem;">
+      <i class="fa-solid fa-list-check" style="color: var(--accent-cyan);"></i> Step-by-Step Execution
+    </h3>
+    <ol style="margin-left: 1.5rem; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.8rem; color: var(--text-muted);">
+      <li>Stand or sit in an upright posture with your feet shoulder-width apart and spine straight.</li>
+      <li>Raise your arms up, bending at the elbows at approximately 90 degrees.</li>
+      <li>Begin smooth, controlled circular rotations through your shoulder joints.</li>
+      <li>Maintain stable hips and keep your elbows positioned close to your sides throughout the movement.</li>
+      <li>Exhale as your arms reach peak elevation, then slowly return to the starting neutral position.</li>
+    </ol>
+
+    <!-- Common Mistakes Alert -->
+    <div style="background: rgba(255, 183, 13, 0.08); border: 1px solid rgba(255, 183, 13, 0.3); border-radius: var(--radius-md); padding: 1.2rem; margin-bottom: 1.8rem;">
+      <h4 style="color: var(--status-warning); font-size: 1.05rem; font-weight: 700; margin-bottom: 0.6rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i> Common Form Mistakes Detected by AI
+      </h4>
+      <ul style="margin-left: 1.2rem; font-size: 0.95rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.4rem;">
+        <li>Flaring elbows outward away from the torso (flashing red alert during live session).</li>
+        <li>Leaning the spine forward or hunching shoulders unevenly.</li>
+        <li>Moving too quickly without controlled range of motion.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

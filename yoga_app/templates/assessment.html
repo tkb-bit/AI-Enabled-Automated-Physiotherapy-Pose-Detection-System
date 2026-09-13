@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Live AI Assessment — {{ exercise }} — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div id="assessmentView" data-exercise="{{ exercise }}">
+  <!-- Assessment Room Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;"><i class="fa-solid fa-arrow-left"></i> Exit</a>
+      <div>
+        <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; line-height: 1.2;">
+          {{ exercise }} AI Assessment
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">MediaPipe Holistic Point-to-Point Skeleton Mesh & Biomechanical Error Guidance</p>
+      </div>
+    </div>
+
+    <!-- 16 Exercise Dropdown Selector -->
+    <div style="display: flex; align-items: center; gap: 0.8rem; background: var(--bg-card); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glow);">
+      <label for="exerciseSelect" style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan);">
+        <i class="fa-solid fa-person-running"></i> Select Exercise (55 Available):
+      </label>
+      <select id="exerciseSelect" 
+              onchange="window.location.href='/assessment?exercise=' + encodeURIComponent(this.value);"
+              style="background: #0f1422; color: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; outline: none;">
+        {% for ex in exercises_list %}
+          <option value="{{ ex }}" {% if ex == exercise %}selected{% endif %}>{{ loop.index }}. {{ ex }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Live Assessment HUD Layout -->
+  <div class="assessment-container">
+    <!-- Camera Video Feed Box -->
+    <div class="video-wrapper">
+      <img src="{{ url_for('video_feed') }}" alt="AI Camera Feed" class="video-feed" id="liveVideoFeed">
+      
+      <!-- Top HUD Overlay -->
+      <div class="hud-overlay">
+        <div class="hud-badge">
+          <span class="live-dot"></span> AI ANALYSIS LIVE
+        </div>
+        <div class="hud-badge">
+          <i class="fa-solid fa-stopwatch" style="color: var(--accent-cyan);"></i> DURATION: <span id="sessionTimer">00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Telemetry & Feedback Panel -->
+    <div class="sidebar-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 0.8rem;">
+        <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem;">Live Metrics</h3>
+        <!-- Voice Feedback Toggle -->
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; color: var(--text-muted);">
+          <input type="checkbox" id="voiceToggle" checked style="accent-color: var(--accent-cyan);">
+          <span>🔊 Instant Voice AI</span>
+        </label>
+      </div>
+
+      <!-- Form Score Metric -->
+      <div class="metric-group">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="metric-label">OVERALL FORM SCORE</span>
+          <span id="hudFormScore" class="metric-value" style="color: var(--status-success);">92%</span>
+        </div>
+        <div class="metric-bar-bg">
+          <div id="hudScoreBar" class="metric-bar-fill" style="width: 92%; background: var(--status-success);"></div>
+        </div>
+      </div>
+
+      <!-- AI Confidence Metric -->
+      <div class="metric-group">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="metric-label">AI CONFIDENCE</span>
+          <span id="hudConfidence" style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--accent-cyan);">96%</span>
+        </div>
+        <div class="metric-bar-bg">
+          <div id="hudConfBar" class="metric-bar-fill" style="width: 96%;"></div>
+        </div>
+      </div>
+
+      <!-- Repetitions Metric -->
+      <div class="metric-group" style="text-align: center;">
+        <span class="metric-label">COMPLETED REPETITIONS</span>
+        <div id="hudRepCount" class="metric-value" style="font-size: 2.8rem; color: #fff; margin-top: 0.2rem;">0</div>
+        <span style="font-size: 0.8rem; color: var(--text-subtle);">Target: 15 Reps</span>
+      </div>
+
+      <!-- Dual Guidance Legend Box -->
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); padding: 0.8rem; border-radius: var(--radius-md); font-size: 0.8rem;">
+        <div style="font-weight: 700; color: #fff; margin-bottom: 0.4rem;">Camera Guidance Key:</div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--status-error);"></span>
+          <span style="color: var(--status-error); font-weight: 600;">RED CROSS:</span> Wrong posture / joint alert
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--status-success);"></span>
+          <span style="color: var(--status-success); font-weight: 600;">GREEN ARROW:</span> Desired target movement
+        </div>
+      </div>
+
+      <!-- Real-Time Corrective Feedback Panel -->
+      <div class="feedback-card">
+        <span class="metric-label" style="color: var(--accent-cyan); display: flex; align-items: center; gap: 0.4rem;">
+          <i class="fa-solid fa-bullhorn"></i> REAL-TIME AI CORRECTION
+        </span>
+        <div id="hudFeedbackPrimary" class="feedback-primary" style="margin-top: 0.5rem; font-size: 1rem; min-height: 48px;">
+          Initializing movement analysis...
+        </div>
+        <ul id="hudFeedbackSecondary" style="margin-top: 0.8rem; padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">
+          <li>Move into camera frame for pose detection.</li>
+        </ul>
+      </div>
+
+      <!-- End Session Action Button -->
+      <button id="endSessionBtn" class="btn btn-primary" style="width: 100%; margin-top: auto; padding: 1rem;">
+        <i class="fa-solid fa-flag-checkered"></i> End Session & Generate Report
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}55 Physiotherapy Exercises — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem;">
+    <div>
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700; margin-bottom: 0.5rem;">
+        <i class="fa-solid fa-dumbbell" style="color: var(--accent-cyan);"></i> Exercise Library
+      </h1>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">
+        55 targeted rehabilitation &amp; mobility exercises. Each with unique anatomical illustrations, AI real-time RED/GREEN posture guidance, rep counting &amp; voice feedback.
+      </p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-self: center;">
+      <button class="ex-filter-btn ex-active" onclick="exFilter(this,'all')">All (55)</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Shoulder')">Shoulder</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Spine')">Spine</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Hip')">Hip &amp; Leg</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Core')">Core</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Wrist')">Wrist</button>
+      <button class="ex-filter-btn" onclick="exFilter(this,'Yoga')">Yoga</button>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <input type="text" id="exSearch" placeholder="Search exercises..." oninput="exSearch(this.value)"
+         style="margin-top: 1.2rem; width: 100%; max-width: 400px; padding: 0.6rem 1rem; background: var(--bg-card); border: 1px solid var(--border-light); color: #fff; border-radius: var(--radius-md); font-size: 0.9rem; outline: none;">
+</div>
+
+<style>
+.ex-filter-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ex-filter-btn:hover, .ex-active {
+  background: rgba(0,242,254,0.15);
+  border-color: var(--border-glow);
+  color: var(--accent-cyan);
+}
+.ex-card {
+  display: flex;
+  flex-direction: column;
+}
+.ex-card[data-filter-tag*="hidden"] {
+  display: none !important;
+}
+.difficulty-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.diff-easy { background: rgba(0,230,118,0.15); color: var(--status-success); }
+.diff-medium { background: rgba(254,198,0,0.15); color: #fec600; }
+.diff-hard { background: rgba(255,82,82,0.15); color: var(--status-error); }
+</style>
+
+{% set exercise_data = [
+  ('Shoulder Rotation',         'ex_shoulder_rotation.jpg',  'Shoulder', 'Intermediate', 12, '4 min',  'Rotator cuff mobility drill targeting supraspinatus, infraspinatus, teres minor &amp; subscapularis for glenohumeral joint health.'),
+  ('Wrist Extension',           'ex_wrist_extension.jpg',    'Wrist',    'Beginner',     15, '3 min',  'Wrist extensor stretch targeting extensor carpi radialis, ECU, and extensor digitorum for RSI prevention and carpal tunnel care.'),
+  ('Spinal Twist',              'ex_spinal_twist.jpg',       'Spine',    'Beginner',     10, '4 min',  'Thoracic rotation exercise targeting T1-T12 vertebrae to reduce upper back stiffness and activate deep thoracic rotators.'),
+  ('Arm Rotation',              'ex_arm_rotation.jpg',       'Shoulder', 'Beginner',     15, '3 min',  'Full-circle arm circles warming deltoids, rotator cuff, and lats while lubricating the glenohumeral joint.'),
+  ('Cat-Cow Pose',              'ex_cat_cow.jpg',            'Spine',    'Beginner',     15, '4 min',  'Breath-synchronized spinal flexion-extension decompressing intervertebral discs and mobilizing thoracic &amp; lumbar segments.'),
+  ('Overhead Arm Stretch',      'ex_shoulder_rotation.jpg',  'Shoulder', 'Beginner',     12, '3 min',  'Overhead lat stretch targeting latissimus dorsi, teres major, and thoracolumbar fascia to improve shoulder flexion ROM.'),
+  ('Neck Roll',                 'ex_spinal_twist.jpg',       'Spine',    'Beginner',     10, '3 min',  'Gentle cervical mobilization targeting SCM, upper trapezius, and scalenes to relieve tension headaches and neck stiffness.'),
+  ('Chest Opener',              'ex_cobra_extension.jpg',    'Shoulder', 'Beginner',     12, '3 min',  'Pectoral and anterior shoulder stretch reversing thoracic kyphosis and improving breathing capacity through intercostal expansion.'),
+  ('Squat & Hip Mobility',      'ex_arm_rotation.jpg',       'Hip',      'Intermediate', 15, '5 min',  'Deep squat targeting hip flexors, adductors, and ankle dorsiflexors to improve athletic performance and joint health.'),
+  ('Tree Pose Balance',         'ex_cat_cow.jpg',            'Yoga',     'Intermediate', 10, '4 min',  'Single-leg balance improving proprioception, ankle stability, and gluteus medius activation for injury prevention.'),
+  ('Warrior Pose',              'SHOULDER ROTATION.png',     'Yoga',     'Intermediate', 12, '5 min',  'Dynamic warrior stance developing hip stability, quad endurance, and thoracic rotation for functional strength and balance.'),
+  ('Bird-Dog Core Extension',   'ex_arm_rotation.jpg',       'Core',     'Intermediate', 15, '4 min',  'Quadruped alternating arm-leg extension for deep core stabilization, lumbar multifidus activation, and lumbopelvic coordination.'),
+  ('Glute Bridge',              'ex_cobra_extension.jpg',    'Hip',      'Beginner',     15, '4 min',  'Supine hip extension targeting gluteus maximus, hamstrings, and hip external rotators for posterior chain strength.'),
+  ('Scapular Retraction',       'ex_shoulder_rotation.jpg',  'Shoulder', 'Beginner',     15, '3 min',  'Postural correction activating middle trapezius and rhomboids to retract scapulae and counteract forward head posture.'),
+  ('Forearm Flexion',           'ex_wrist_extension.jpg',    'Wrist',    'Beginner',     15, '3 min',  'Isolated forearm curl activating biceps brachii, brachialis, and brachioradialis for elbow stability and grip endurance.'),
+  ('Side Lateral Raise',        'ex_arm_rotation.jpg',       'Shoulder', 'Intermediate', 12, '4 min',  'Lateral deltoid isolation targeting supraspinatus initiation, medial deltoid, and upper trapezius for shoulder width.'),
+  ('Triangle Pose',             'ex_spinal_twist.jpg',       'Yoga',     'Intermediate', 10, '4 min',  'Standing lateral flexion targeting obliques, quadratus lumborum, and IT band for frontal plane spinal mobility.'),
+  ('Downward-Facing Dog',       'ex_cobra_extension.jpg',    'Yoga',     'Beginner',     10, '4 min',  'Inverted V-pose stretching hamstrings, calves, thoracic spine, and building shoulder stability with core engagement.'),
+  ('Cobra Back Extension',      'ex_cobra_extension.jpg',    'Spine',    'Beginner',     12, '4 min',  'Prone back extension activating erector spinae and multifidus to strengthen lumbar extensors and counteract desk posture.'),
+  ('Child\'s Pose Lumbar Relief','ex_cat_cow.jpg',           'Spine',    'Beginner',     10, '3 min',  'Restorative hip flexion stretching lumbar erectors, gluteus maximus, and lats to relieve lower back compression.'),
+  ('Ankle Circles & Mobility',  'FINGER TIP TOUCHES.png',    'Hip',      'Beginner',     15, '3 min',  'Ankle joint mobilization targeting talocrural joint, peroneals, tibialis anterior, and Achilles for injury prevention.'),
+  ('Hamstring Stretch & Release','ex_arm_rotation.jpg',      'Hip',      'Beginner',     12, '4 min',  'Posterior leg elongation targeting biceps femoris, semimembranosus, and semitendinosus to relieve tightness.'),
+  ('Quadriceps Stretch',        'ex_cobra_extension.jpg',    'Hip',      'Beginner',     12, '3 min',  'Standing quad and hip flexor stretch targeting rectus femoris and iliopsoas to relieve anterior knee tension.'),
+  ('Calf Raise & Balance',      'ex_spinal_twist.jpg',       'Hip',      'Beginner',     20, '3 min',  'Bilateral and unilateral calf raise targeting gastrocnemius, soleus, and tibialis posterior for ankle strength.'),
+  ('Plank Core Hold',           'ex_arm_rotation.jpg',       'Core',     'Intermediate', 5,  '4 min',  'Full-body isometric plank activating transversus abdominis, obliques, and serratus anterior for anti-extension core control.'),
+  ('Side Plank Lateral Core',   'ex_shoulder_rotation.jpg',  'Core',     'Intermediate', 5,  '4 min',  'Lateral isometric plank targeting obliques, quadratus lumborum, and hip abductors for frontal plane core stability.'),
+  ('Thoracic Extension',        'ex_spinal_twist.jpg',       'Spine',    'Intermediate', 10, '4 min',  'Thoracic extension targeting T4-T8 vertebrae to reverse rounded upper back and improve overhead shoulder mobility.'),
+  ('Hip Flexor Lunge Stretch',  'ex_cobra_extension.jpg',    'Hip',      'Beginner',     12, '4 min',  'Kneeling lunge targeting iliopsoas, rectus femoris, and TFL to relieve anterior hip tightness from prolonged sitting.'),
+  ('Piriformis Stretch',        'ex_arm_rotation.jpg',       'Hip',      'Beginner',     10, '3 min',  'Figure-four piriformis stretch targeting sciatic nerve pathway to relieve piriformis syndrome and deep gluteal tightness.'),
+  ('Pelvic Tilt Stabilization', 'ex_spinal_twist.jpg',       'Core',     'Beginner',     15, '3 min',  'Supine pelvic tilt activating transversus abdominis and multifidus to reduce lumbar lordosis and chronic back pain.'),
+  ('Scapular Wall Slide',       'ex_shoulder_rotation.jpg',  'Shoulder', 'Beginner',     12, '3 min',  'Wall-supported scapular gliding targeting lower and middle trapezius to retrain scapulothoracic rhythm and correct winging.'),
+  ('Chin Tuck Neck Posture',    'ex_spinal_twist.jpg',       'Spine',    'Beginner',     15, '3 min',  'Deep cervical flexor activation targeting longus colli and longus capitis to correct forward head posture.'),
+  ('Shoulder External Rotation','ex_shoulder_rotation.jpg',  'Shoulder', 'Intermediate', 12, '4 min',  'Resisted external rotation targeting infraspinatus and teres minor for rotator cuff strength and impingement prevention.'),
+  ('Wrist Flexion Stretch',     'ex_wrist_extension.jpg',    'Wrist',    'Beginner',     15, '3 min',  'Wrist flexor stretch targeting flexor carpi radialis, palmaris longus, and FDS to prevent repetitive strain injury.'),
+  ('Pronation & Supination',    'ex_arm_rotation.jpg',       'Wrist',    'Beginner',     15, '3 min',  'Forearm rotation drill targeting pronator teres, pronator quadratus, and supinator to restore radioulnar joint mobility.'),
+  ('High Knee Lift Balance',    'SHOULDER ROTATION.png',     'Hip',      'Intermediate', 20, '4 min',  'Standing high knee march targeting iliopsoas and hip flexor complex for gait training and single-leg balance.'),
+  ('Standing Side Bend',        'SPINAL TWIST.png',          'Spine',    'Beginner',     12, '3 min',  'Lateral trunk flexion targeting obliques, quadratus lumborum, and intercostals for lateral spinal mobility.'),
+  ('Seated Forward Bend',       'ex_cobra_extension.jpg',    'Spine',    'Beginner',     10, '4 min',  'Seated spine flexion stretching hamstrings, lumbar erectors, and SI joint for posterior chain elongation.'),
+  ('Bridge Raise Single Leg',   'ex_arm_rotation.jpg',       'Hip',      'Intermediate', 12, '4 min',  'Single-leg hip thrust targeting gluteus maximus, hamstrings, and contralateral hip abductors for unilateral rehabilitation.'),
+  ('Dead Bug Core Control',     'ex_spinal_twist.jpg',       'Core',     'Intermediate', 10, '4 min',  'Supine alternating arm-leg lowering targeting transversus abdominis and deep core for lumbar stabilization under load.'),
+  ('Clamshell Hip Abduction',   'SHOULDER ROTATION.png',     'Hip',      'Beginner',     15, '4 min',  'Side-lying hip external rotation targeting gluteus medius to correct hip drop, knee valgus, and IT band syndrome.'),
+  ('Monster Walk Lateral Band', 'CAT COW.png',               'Hip',      'Intermediate', 15, '5 min',  'Resistance band lateral walk targeting gluteus medius, TFL, and hip abductors for dynamic hip stability.'),
+  ('Pendulum Arm Swing',        'ex_arm_rotation.jpg',       'Shoulder', 'Beginner',     12, '3 min',  'Gravity-assisted pendulum for shoulder joint distraction, reducing compression, and improving glenohumeral mobility post-injury.'),
+  ('Cross-Body Shoulder Stretch','ex_shoulder_rotation.jpg', 'Shoulder', 'Beginner',     10, '3 min',  'Horizontal adduction stretch targeting posterior deltoid and posterior capsule to improve internal rotation ROM.'),
+  ('Triceps Extension Stretch', 'ex_wrist_extension.jpg',    'Shoulder', 'Beginner',     12, '3 min',  'Overhead triceps stretch targeting long head of triceps brachii and posterior capsule for elbow ROM and flexibility.'),
+  ('Biceps Stretch',            'ex_cobra_extension.jpg',    'Shoulder', 'Beginner',     12, '3 min',  'Supination-based biceps and anterior shoulder stretch targeting biceps brachii and coracobrachialis for tendinopathy relief.'),
+  ('Abductor Leg Raise',        'SPINAL TWIST.png',          'Hip',      'Beginner',     15, '4 min',  'Side-lying leg abduction targeting gluteus medius, TFL, and hip abductor chain for lateral hip stability and strength.'),
+  ('Adductor Squeeze',          'ex_arm_rotation.jpg',       'Hip',      'Beginner',     15, '3 min',  'Isometric adductor activation targeting adductor magnus, longus, brevis, and gracilis for medial hip stability.'),
+  ('Toe Touch Forward Fold',    'ex_cobra_extension.jpg',    'Spine',    'Beginner',     10, '3 min',  'Standing forward fold targeting hamstrings, lumbar fascia, and gastrocnemius to improve hip flexion mobility.'),
+  ('Reverse Fly Posture',       'ex_shoulder_rotation.jpg',  'Shoulder', 'Intermediate', 12, '4 min',  'Rear deltoid and rhomboid activation correcting forward rounded shoulders and upper cross syndrome.'),
+  ('Spinal Arch Flexion',       'ex_cat_cow.jpg',            'Spine',    'Beginner',     10, '4 min',  'Full spinal articulation from cervical to sacral spine restoring segmental mobility and decompressing facet joints.'),
+  ('Wall Sit Endurance',        'ex_spinal_twist.jpg',       'Hip',      'Intermediate', 5,  '4 min',  'Quad isometric wall sit targeting VMO, rectus femoris, and vastus lateralis for knee extensor endurance.'),
+  ('Quadruped Hip Extension',   'ex_arm_rotation.jpg',       'Hip',      'Beginner',     15, '4 min',  'All-fours single leg extension targeting gluteus maximus and lumbar extensors for hip extension strength.'),
+  ('Cervical Lateral Flexion',  'ex_wrist_extension.jpg',    'Spine',    'Beginner',     10, '3 min',  'Side-neck stretch targeting upper trapezius, scalenes, and levator scapulae for cervicogenic headache relief.'),
+  ('Full-Body Restorative Stretch','ex_cat_cow.jpg',         'Yoga',     'Beginner',     5,  '8 min',  'Full-body restorative yoga sequence targeting parasympathetic nervous system, hip flexors, and thoracic spine for recovery.')
+] %}
+
+<div class="grid-cards" id="exerciseGrid">
+  {% for ex_name, img_file, category, difficulty, reps, duration, description in exercise_data %}
+    <div class="card ex-card" style="padding: 0; overflow: hidden;" data-name="{{ ex_name }}" data-cat="{{ category }}">
+      <!-- Exercise Image -->
+      <div style="height: 190px; overflow: hidden; position: relative; background: #0a0e1a;">
+        <img src="{{ url_for('serve_media', filename=img_file) }}"
+             alt="{{ ex_name }}"
+             style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;"
+             onmouseover="this.style.transform='scale(1.04)'"
+             onmouseout="this.style.transform='scale(1)'"
+             onerror="this.src='{{ url_for('serve_media', filename='SHOULDER ROTATION.png') }}';">
+
+        <!-- Badges -->
+        <div style="position: absolute; top: 0.6rem; left: 0.6rem; display: flex; flex-direction: column; gap: 0.3rem;">
+          <span class="hud-badge" style="font-size: 0.68rem; background: rgba(11,15,25,0.85);">
+            Exercise #{{ loop.index }}
+          </span>
+          <span class="hud-badge" style="font-size: 0.68rem; background: rgba(11,15,25,0.85); color: var(--accent-cyan);">
+            {{ category }}
+          </span>
+        </div>
+
+        <span class="difficulty-badge diff-{{ difficulty|lower }}
+          {%- if difficulty == 'Intermediate' %} diff-medium{% endif %}
+          {%- if difficulty == 'Advanced' %} diff-hard{% endif %}"
+              style="position: absolute; bottom: 0.6rem; right: 0.6rem;">
+          {{ difficulty }}
+        </span>
+      </div>
+
+      <!-- Card Content -->
+      <div style="padding: 1.2rem; display: flex; flex-direction: column; flex: 1;">
+        <h3 class="card-title" style="font-size: 1rem; margin-bottom: 0.5rem;">{{ ex_name }}</h3>
+        <p class="card-desc" style="font-size: 0.82rem; line-height: 1.5; margin-bottom: 0.8rem; flex: 1;">
+          {{ description }}
+        </p>
+
+        <!-- Stats Row -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.78rem; color: var(--text-subtle);">
+          <div><i class="fa-solid fa-rotate" style="color: var(--accent-cyan);"></i> {{ reps }} reps</div>
+          <div><i class="fa-solid fa-clock" style="color: var(--accent-cyan);"></i> {{ duration }}</div>
+          <div><i class="fa-solid fa-brain" style="color: var(--accent-cyan);"></i> AI Guided</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.6rem;">
+          <a href="{{ url_for('exercise_detail', exercise_name=ex_name) }}"
+             class="btn btn-secondary" style="flex: 1; font-size: 0.82rem; padding: 0.6rem;">
+            <i class="fa-solid fa-info-circle"></i> Details
+          </a>
+          <a href="{{ url_for('assessment', exercise=ex_name) }}"
+             class="btn btn-primary" style="flex: 1.5; font-size: 0.82rem; padding: 0.6rem;">
+            <i class="fa-solid fa-camera"></i> Start AI Session
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+window.exFilter = function(btn, cat) {
+  document.querySelectorAll('.ex-filter-btn').forEach(b => b.classList.remove('ex-active'));
+  btn.classList.add('ex-active');
+  document.querySelectorAll('.ex-card').forEach(card => {
+    if(cat === 'all' || card.dataset.cat === cat) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+};
+
+window.exSearch = function(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.ex-card').forEach(card => {
+    const name = card.dataset.name.toLowerCase();
+    const cat  = card.dataset.cat.toLowerCase();
+    card.style.display = (name.includes(q) || cat.includes(q)) ? '' : 'none';
+  });
+};
+</script>
+
+{% endblock %}

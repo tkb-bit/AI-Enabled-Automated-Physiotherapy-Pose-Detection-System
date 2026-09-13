@@ -1,0 +1,979 @@
+{% extends "base.html" %}
+
+{% block title %}Physiotherapy & Rehabilitation Guide — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; margin-bottom: 0.5rem;">
+        <i class="fa-solid fa-kit-medical" style="color: var(--accent-cyan);"></i> Physiotherapy &amp; Rehabilitation Guide
+      </h1>
+      <p style="color: var(--text-muted); font-size: 1rem;">
+        55 evidence-based clinical rehabilitation protocols covering every major body region. Click any section to expand full protocol details.
+      </p>
+    </div>
+    <!-- Filter Tabs -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-self: center;">
+      <button class="reh-btn reh-active" onclick="rehFilter(this,'all')">All (55)</button>
+      <button class="reh-btn" onclick="rehFilter(this,'shoulder')">Shoulder</button>
+      <button class="reh-btn" onclick="rehFilter(this,'spine')">Spine &amp; Back</button>
+      <button class="reh-btn" onclick="rehFilter(this,'hip')">Hip &amp; Leg</button>
+      <button class="reh-btn" onclick="rehFilter(this,'wrist')">Wrist &amp; Hand</button>
+      <button class="reh-btn" onclick="rehFilter(this,'core')">Core</button>
+      <button class="reh-btn" onclick="rehFilter(this,'neuro')">Neuro &amp; Balance</button>
+      <button class="reh-btn" onclick="rehFilter(this,'sport')">Sports Rehab</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <input type="text" id="rehSearch" placeholder="Search conditions, exercises, or muscles..."
+         oninput="rehSearchFn(this.value)"
+         style="margin-top: 1rem; width: 100%; max-width: 480px; padding: 0.6rem 1rem; background: var(--bg-card); border: 1px solid var(--border-light); color: #fff; border-radius: var(--radius-md); font-size: 0.88rem; outline: none;">
+</div>
+
+<style>
+.reh-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.reh-btn:hover, .reh-active {
+  background: rgba(0,242,254,0.15);
+  border-color: var(--border-glow);
+  color: var(--accent-cyan);
+}
+.reh-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.reh-section:hover { border-color: var(--border-glow); }
+.reh-section[open] { border-color: var(--border-glow); }
+.reh-summary {
+  padding: 1.1rem 1.4rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+.reh-summary::-webkit-details-marker { display: none; }
+.reh-body {
+  padding: 0 1.4rem 1.4rem;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+.reh-tag {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 0.3rem;
+}
+.tag-shoulder { background: rgba(0,242,254,0.12); color: var(--accent-cyan); }
+.tag-spine    { background: rgba(138,43,226,0.15); color: #b47dff; }
+.tag-hip      { background: rgba(0,230,118,0.12); color: var(--status-success); }
+.tag-wrist    { background: rgba(254,198,0,0.12); color: #fec600; }
+.tag-core     { background: rgba(255,100,50,0.12); color: #ff6432; }
+.tag-neuro    { background: rgba(255,42,95,0.12); color: var(--status-error); }
+.tag-sport    { background: rgba(79,172,254,0.12); color: #4facfe; }
+.reh-stop {
+  background: rgba(255,82,82,0.08);
+  border: 1px solid rgba(255,82,82,0.25);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  color: #ff9a9a;
+  font-size: 0.84rem;
+}
+.reh-tip {
+  background: rgba(0,242,254,0.06);
+  border: 1px solid rgba(0,242,254,0.2);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--accent-cyan);
+  font-size: 0.84rem;
+}
+.reh-phases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.7rem;
+}
+.phase-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-light);
+  padding: 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+.phase-box strong { color: var(--accent-cyan); display: block; margin-bottom: 0.3rem; font-size: 0.75rem; }
+.metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-light);
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin: 0.15rem;
+  color: var(--text-muted);
+}
+</style>
+
+<!-- Medical Disclaimer -->
+<div style="background: rgba(79,172,254,0.07); border: 1px solid rgba(79,172,254,0.3); border-radius: var(--radius-md); padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
+  <h4 style="color: var(--accent-cyan); font-weight: 700; margin-bottom: 0.3rem; font-size: 1rem;">
+    <i class="fa-solid fa-shield-halved"></i> Medical Disclaimer
+  </h4>
+  <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+    This platform provides AI-assisted exercise guidance and rehabilitation education. It is NOT a medical diagnosis tool or replacement for professional clinical care. Always consult a licensed physiotherapist before starting any rehabilitation program, and stop immediately if you experience sharp or increasing pain.
+  </p>
+</div>
+
+<!-- Stats Bar -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-cyan); font-family: 'Space Grotesk', sans-serif;">55</div>
+    <div style="font-size: 0.78rem; color: var(--text-muted);">Clinical Protocols</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.8rem; font-weight: 800; color: var(--status-success); font-family: 'Space Grotesk', sans-serif;">8</div>
+    <div style="font-size: 0.78rem; color: var(--text-muted);">Body Regions</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.8rem; font-weight: 800; color: #b47dff; font-family: 'Space Grotesk', sans-serif;">200+</div>
+    <div style="font-size: 0.78rem; color: var(--text-muted);">Exercise Variations</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.8rem; font-weight: 800; color: #fec600; font-family: 'Space Grotesk', sans-serif;">AI</div>
+    <div style="font-size: 0.78rem; color: var(--text-muted);">Guided &amp; Monitored</div>
+  </div>
+</div>
+
+<div id="rehContainer" style="display: flex; flex-direction: column; gap: 0.8rem;">
+
+  <!-- ═══════════════════════ SHOULDER REGION ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="shoulder" open>
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-arrows-spin" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 1. Rotator Cuff Strain &amp; Impingement Syndrome <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Rotator cuff impingement occurs when supraspinatus, infraspinatus, teres minor, or subscapularis tendons are compressed under the acromion during arm elevation. Common in overhead athletes and desk workers with poor scapulothoracic rhythm.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Phase 1 – Acute (Wk 1–2)</strong> Pendulum swings, passive ROM, ice/heat modalities, rest from overhead loading</div>
+        <div class="phase-box"><strong>Phase 2 – Sub-Acute (Wk 3–5)</strong> Scapular retractions, resisted ER/IR, side-lying external rotation</div>
+        <div class="phase-box"><strong>Phase 3 – Strengthening (Wk 6–10)</strong> Full rotator cuff circuit, shoulder press technique, sport-specific loading</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Shoulder External Rotation, Scapular Wall Slide, Pendulum Arm Swing, Side Lateral Raise, Reverse Fly
+        <br><span class="metric-pill"><i class="fa-solid fa-rotate"></i> 3×12 reps</span>
+        <span class="metric-pill"><i class="fa-solid fa-clock"></i> 4–5 weeks</span>
+        <span class="metric-pill"><i class="fa-solid fa-angle-up"></i> Avoid overhead &lt;90°</span>
+      </div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Stop if:</strong> Sharp pinching felt at front of shoulder during elevation, or numbness radiates down arm.</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> The live pose engine detects elbow flare &gt;38cm from hip — a primary impingement risk factor — and alerts you in real time.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-bone" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 2. Frozen Shoulder (Adhesive Capsulitis) <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Adhesive capsulitis causes progressive stiffening of the glenohumeral joint capsule, leading to severe ROM restriction. Progresses through freezing, frozen, and thawing phases over 12–18 months.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Freezing Phase</strong> Pain-guided ROM, pendulum exercises, gentle passive stretching within comfort</div>
+        <div class="phase-box"><strong>Frozen Phase</strong> Aggressive stretching, joint mobilization, capsular stretches, pulley exercises</div>
+        <div class="phase-box"><strong>Thawing Phase</strong> Progressive strengthening, functional movement patterns, overhead loading</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Pendulum Arm Swing, Cross-Body Shoulder Stretch, Overhead Arm Stretch, Chest Opener, Shoulder External Rotation</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Stop if:</strong> Extreme pain during passive range — frozen shoulder stretches must be at the pain threshold, not beyond.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-circle-dot" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 3. Bicipital Tendinopathy &amp; SLAP Lesion <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Bicipital tendinopathy involves inflammation or degeneration of the long head of biceps brachii where it attaches to the superior labrum (SLAP). Common in throwing athletes and overhead lifters.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Biceps Stretch, Forearm Supination, Pendulum Swing, Scapular Retraction
+        <br><span class="metric-pill"><i class="fa-solid fa-dumbbell"></i> Eccentric loading protocol</span>
+        <span class="metric-pill"><i class="fa-solid fa-clock"></i> 8–12 weeks</span>
+      </div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> <strong>Stop if:</strong> Clicking with pain at shoulder, or anterior shoulder pain with forearm supination against resistance.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-link" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 4. Shoulder Instability &amp; AC Joint Sprain <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Acromioclavicular (AC) joint sprains range from Grade I (ligament stretch) to Grade III (complete disruption). Scapular stabilization is the cornerstone of rehab to protect the AC joint.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Grade I–II</strong> Rest 1–2 weeks, scapular stabilization, progressive strengthening without overhead</div>
+        <div class="phase-box"><strong>Grade III</strong> Conservative or surgical management, 3–6 month rehabilitation program</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Scapular Wall Slide, Scapular Retraction, Side Lateral Raise, Reverse Fly</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> Avoid bench press and overhead pressing until AC pain-free throughout full ROM.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 5. Shoulder Bursitis (Subacromial) <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Subacromial bursa inflammation causes pain with arm elevation between 60°–120° (painful arc). Often co-exists with rotator cuff tendinopathy.</p>
+      <div><strong style="color:#fff;">Management Protocol:</strong> Activity modification, anti-inflammatory phase (1–2 weeks), then gradual rotator cuff strengthening. Corticosteroid injection may precede physiotherapy in severe cases.</div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Pendulum Arm Swing, External Rotation (sidelying), Scapular Depression exercises, Chest Opener</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Overhead press, pull-ups, and any activity recreating the painful arc during acute phase.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-arrows-to-eye" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 6. Scapular Dyskinesis &amp; Winging <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Abnormal scapular movement during arm elevation, often caused by serratus anterior or lower trapezius weakness. Leads to impingement, rotator cuff overload, and shoulder pain.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Scapular Wall Slide, Scapular Retraction, Bird-Dog, Push-up Plus, Serratus Activation</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> Use the Shoulder Rotation assessment — the AI monitors shoulder-height symmetry in real time and alerts if one scapula elevates excessively.</div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ SPINE & BACK ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-arrows-left-right" style="color: #b47dff; margin-right: 0.7rem;"></i> 7. Chronic Low Back Pain &amp; Lumbar Disc Disease <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Degenerative lumbar disc disease causes disc bulge/herniation compressing nerve roots, causing radiating leg pain (sciatica), morning stiffness, and position-dependent pain.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Acute Phase</strong> McKenzie extension or flexion-biased postures, pain-guided ADLs, avoid sitting &gt;20 min</div>
+        <div class="phase-box"><strong>Sub-Acute</strong> Core stabilization, Cat-Cow, Pelvic Tilt, Bird-Dog, gentle walking program</div>
+        <div class="phase-box"><strong>Chronic Phase</strong> Progressive loading, deadlift mechanics, return to sport/work specific tasks</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Cat-Cow, Pelvic Tilt Stabilization, Bird-Dog, Dead Bug, Child's Pose, Spinal Arch
+        <br><span class="metric-pill"><i class="fa-solid fa-rotate"></i> Daily 2×10 reps</span>
+        <span class="metric-pill"><i class="fa-solid fa-walking"></i> 20–30 min walks</span>
+      </div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Red Flags: Saddle anaesthesia, bilateral leg symptoms, or bowel/bladder dysfunction — seek emergency care immediately.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-compress" style="color: #b47dff; margin-right: 0.7rem;"></i> 8. Sciatica &amp; Piriformis Syndrome <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Sciatic nerve irritation causes burning pain from gluteal region down posterior leg to foot. Piriformis syndrome specifically involves sciatic nerve compression by the piriformis muscle.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Piriformis Stretch (figure-four), Hip Flexor Lunge, Child's Pose, Hamstring Stretch, Neural Flossing (sciatic nerve mobilization)
+        <br><span class="metric-pill"><i class="fa-solid fa-clock"></i> 30-sec holds × 3</span>
+        <span class="metric-pill"><i class="fa-solid fa-bed"></i> Avoid prolonged sitting</span>
+      </div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> The piriformis stretch in a figure-four position is most effective when the ankle is flexed (dorsiflexed) to maximize external rotation stretch.</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Differentiate from lumbar disc herniation — sciatic neural tension tests (SLR, slump test) help confirm piriformis vs. disc origin.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-angle-up" style="color: #b47dff; margin-right: 0.7rem;"></i> 9. Forward Head Posture &amp; Cervical Dysfunction <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Forward head posture (FHP) increases cervical compressive forces by ~4kg per inch of forward displacement. Causes upper trapezius tension, cervicogenic headaches, and thoracic kyphosis.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Chin Tuck (deep cervical flexion), Neck Roll, Cervical Lateral Flexion, Scapular Retraction, Thoracic Extension
+        <br><span class="metric-pill"><i class="fa-solid fa-rotate"></i> 10 reps hourly at desk</span>
+        <span class="metric-pill"><i class="fa-solid fa-desktop"></i> Monitor height</span>
+      </div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> The AI skeleton detects chin-to-shoulder landmark alignment in real time — the Chin Tuck assessment shows green arrows guiding the correct head retraction path.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-falling" style="color: #b47dff; margin-right: 0.7rem;"></i> 10. Thoracic Kyphosis (Hunchback Posture) <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Excessive thoracic flexion (>45° Cobb angle) leading to vertebral wedging, pectoral shortening, and posterior thoracic muscle elongation weakness. Common in adolescents (Scheuermann's) and elderly (osteoporotic).</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Thoracic Extension (foam roller), Cobra Back Extension, Scapular Retraction, Wall Slide, Chest Opener, Bird-Dog</div>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Mobility</strong> Thoracic foam rolling daily, 10 reps thoracic extension over roller</div>
+        <div class="phase-box"><strong>Strength</strong> Mid-trap and rhomboid exercises, 3×15 face pulls</div>
+        <div class="phase-box"><strong>Retraining</strong> Postural re-education, workspace ergonomics, breathing pattern</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-rotate" style="color: #b47dff; margin-right: 0.7rem;"></i> 11. Spondylolisthesis &amp; Facet Joint Pain <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Anterior vertebral slippage (spondylolisthesis) or arthritic facet joint degeneration causing extension-biased back pain, particularly with prolonged standing or lumbar extension activities.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Pelvic Tilt (posterior), Cat-Cow (flexion bias), Dead Bug, Double-Knee-to-Chest, Hamstring Stretch</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Lumbar hyperextension, heavy axial loading (barbell squat/deadlift) in high-grade slippage without clearance.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-dots-from-line" style="color: #b47dff; margin-right: 0.7rem;"></i> 12. Scoliosis Management &amp; Postural Correction <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Lateral spinal curvature with vertebral rotation. Mild idiopathic scoliosis (&lt;25°) responds well to Schroth method physiotherapy emphasizing 3D auto-correction and breathing.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Side Plank (convex side), Standing Side Bend (concave opening), Thoracic Rotation, Spinal Arch Flexion, Swimming pattern</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> The AI skeleton monitors bilateral shoulder and hip height in real time — critical for detecting compensatory patterns during scoliosis exercises.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hospital" style="color: #b47dff; margin-right: 0.7rem;"></i> 13. Spinal Stenosis &amp; Neurogenic Claudication <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Narrowing of spinal canal causing leg heaviness, bilateral leg pain worsened by standing/walking (claudication). Improved with spinal flexion (sitting, leaning forward on cart).</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Seated Forward Bend, Double Knee-to-Chest, Stationary cycling (flexed posture), Cat-Cow, Aquatic therapy</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Lumbar extension positions — any exercise that recreates bilateral leg symptoms indicates neural compromise.</div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ HIP & LEG ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-running" style="color: var(--status-success); margin-right: 0.7rem;"></i> 14. IT Band Syndrome (ITBS) <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Friction syndrome at the lateral femoral epicondyle from repetitive knee flexion/extension in runners and cyclists. Primary cause is gluteus medius weakness leading to excessive hip adduction and knee internal rotation.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Clamshell Hip Abduction, Monster Walk Lateral Band, Standing Side Bend (IT band stretch), High Knee Lift, Single Leg Squat</div>
+      <div><strong style="color:#fff;">Foam Rolling Protocol:</strong> TFL and lateral quadriceps rolling 2×90s before exercise, avoiding direct pressure on lateral knee (the compression zone).</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Reduce running volume by 50% during acute phase. Return to running only when single-leg squat shows no hip drop.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-circle-nodes" style="color: var(--status-success); margin-right: 0.7rem;"></i> 15. Hip Flexor Tightness &amp; Psoas Syndrome <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Chronic sitting shortens iliopsoas, causing anterior pelvic tilt, lumbar hyperlordosis, and reduced hip extension. Psoas impingement can mimic hip joint pathology.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Hip Flexor Lunge Stretch (kneeling), Pigeon Pose Variation, Bridge to stretch hip flexors, Cat-Cow posterior pelvic tilt</div>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Acute</strong> Kneeling lunge 30s holds, 3× daily</div>
+        <div class="phase-box"><strong>Strength</strong> Hip extension strengthening (glutes/hamstrings) to balance</div>
+        <div class="phase-box"><strong>Function</strong> Gait retraining, hip extension during walking</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-joint" style="color: var(--status-success); margin-right: 0.7rem;"></i> 16. Knee Osteoarthritis &amp; Patellofemoral Pain <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Patellofemoral pain syndrome (PFPS) involves pain behind/around kneecap during squatting, stairs, and prolonged sitting. Caused by quadriceps imbalance (VMO weakness), hip abductor weakness, and tight lateral structures.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Terminal Knee Extension, Straight Leg Raise, Wall Sit, Clamshell, Step-Up, Quad Stretch, Calf Raise</div>
+      <div><strong style="color:#fff;">Key Metrics:</strong>
+        <span class="metric-pill">Knee over toes ✓</span>
+        <span class="metric-pill">No valgus collapse</span>
+        <span class="metric-pill">VMO contraction check</span>
+      </div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> The Squat assessment detects knee valgus (inward cave) in real time with a RED CROSS joint alert on the knee, and GREEN arrows showing the correct path.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-walking" style="color: var(--status-success); margin-right: 0.7rem;"></i> 17. ACL Rehabilitation Protocol <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Anterior cruciate ligament reconstruction rehabilitation follows a phased return-to-sport protocol over 9–12 months, prioritizing graft protection, quadriceps re-activation, and proprioceptive retraining.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Phase 1 (0–6w)</strong> Graft protection, SLR, quad sets, terminal knee extension, full extension ROM</div>
+        <div class="phase-box"><strong>Phase 2 (6–14w)</strong> Closed chain exercises, single-leg squat, lateral band walks, bike</div>
+        <div class="phase-box"><strong>Phase 3 (14–24w)</strong> Plyometrics, hop tests, agility drills, sport-specific training</div>
+        <div class="phase-box"><strong>Phase 4 (24w+)</strong> Return-to-sport criteria: &gt;90% LSI, negative pivot shift, psychological readiness</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Straight Leg Raise, Quad Set, Wall Sit, Calf Raise, Monster Walk, High Knee Lift, Single Leg Bridge</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-shoe-prints" style="color: var(--status-success); margin-right: 0.7rem;"></i> 18. Achilles Tendinopathy &amp; Calf Injury <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Midportion or insertional Achilles tendinopathy from excessive mechanical load. Heavy slow resistance (HSR) eccentric protocol is gold standard for tendon remodelling.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Eccentric Calf Raise (heel drop off step), Bilateral Calf Raise, Ankle Circles, Soleus Stretch, Tibialis Anterior activation</div>
+      <div><strong style="color:#fff;">Alfredson Protocol:</strong>
+        <span class="metric-pill">3×15 eccentric heel drops</span>
+        <span class="metric-pill">Twice daily</span>
+        <span class="metric-pill">12 weeks minimum</span>
+      </div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: NSAIDS long-term (interfere with collagen synthesis), complete rest is counterproductive — load the tendon progressively.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-cane" style="color: var(--status-success); margin-right: 0.7rem;"></i> 19. Plantar Fasciitis &amp; Heel Pain <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Plantar fasciopathy presents with first-step morning pain at calcaneal insertion. Caused by repetitive tensile loading on plantar fascia, calf tightness, and high-arch or flat-foot biomechanics.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Calf Stretch (standing &amp; seated), Intrinsic Foot Muscle activation (towel scrunches), Ankle Circles, High Arch formation</div>
+      <div><strong style="color:#fff;">Self-Management:</strong> Frozen water bottle rolling under arch 5 min morning &amp; evening; night splint to maintain dorsiflexion during sleep.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-arrows-to-circle" style="color: var(--status-success); margin-right: 0.7rem;"></i> 20. Hip Osteoarthritis &amp; Greater Trochanteric Pain <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Hip OA causes groin or anterior hip pain with rotation; Greater Trochanteric Pain Syndrome (GTPS) involves gluteal tendinopathy and TFL tightness causing lateral hip pain.</p>
+      <div><strong style="color:#fff;">Key Exercises — Hip OA:</strong> Clamshell, Glute Bridge, Squat (parallel only), Side-Lying Hip Abduction, Adductor Squeeze</div>
+      <div><strong style="color:#fff;">Key Exercises — GTPS:</strong> Isometric hip abduction (wall), Clamshell, avoid cross-legged sitting and hip adduction stretches that compress tendon</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> For GTPS: Avoid all adduction stretches (pigeon pose, crossing legs) — tendon compression worsens symptoms. Load the tendon in abduction instead.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-walking" style="color: var(--status-success); margin-right: 0.7rem;"></i> 21. Hamstring Strain Rehabilitation <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Proximal hamstring tendinopathy or muscle-tendon junction tears from sprinting. Nordic hamstring curl (eccentric) is evidence-based prevention and rehabilitation.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Grade I (Mild)</strong> Active rest, isometrics, begin eccentric in 5–7 days</div>
+        <div class="phase-box"><strong>Grade II (Moderate)</strong> 2–4 weeks, progressive eccentric, neuromuscular control drills</div>
+        <div class="phase-box"><strong>Grade III (Severe)</strong> 6–12 weeks, surgical consult for complete ruptures, slow progressive loading</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Hamstring Stretch, Nordic Curl, Single Leg Bridge, Dead Bug, Good Morning (light)</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-praying" style="color: var(--status-success); margin-right: 0.7rem;"></i> 22. Hip Impingement (FAI — Femoroacetabular) <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Cam (femoral) or pincer (acetabular) morphology causes labral impingement with deep hip flexion and internal rotation. Common in active young adults — often misdiagnosed as groin strain.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Piriformis Stretch, Hip Flexor Lunge (controlled depth), Clamshell, Glute Bridge, Side-Lying Hip Abduction</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Deep squat past 90°, seated hip flexion past 90°, and high-impact activities until cleared by imaging.</div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ WRIST & HAND ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hand" style="color: #fec600; margin-right: 0.7rem;"></i> 23. Carpal Tunnel Syndrome (CTS) <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Median nerve compression at carpal tunnel causing nocturnal paraesthesia in thumb, index, middle, and radial half of ring finger. Aggravated by sustained wrist flexion and repetitive hand use.</p>
+      <div><strong style="color:#fff;">Conservative Protocol:</strong> Neutral wrist splinting (nocturnal), tendon gliding exercises, nerve flossing, ergonomic modification</div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Tendon Glides (5 positions), Wrist Extension Stretch, Wrist Flexion Stretch, Median Nerve Floss, Finger Spread</div>
+      <div><strong style="color:#fff;">Ergonomics:</strong>
+        <span class="metric-pill">Mouse pad wrist rest</span>
+        <span class="metric-pill">Neutral wrist position</span>
+        <span class="metric-pill">Break every 30 min</span>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-grip" style="color: #fec600; margin-right: 0.7rem;"></i> 24. Tennis Elbow (Lateral Epicondylalgia) <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Extensor carpi radialis brevis tendinopathy at lateral epicondyle from repetitive wrist extension or gripping. Classic point tenderness 1cm distal to lateral epicondyle.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Eccentric Wrist Extension (Tyler Twist protocol), Wrist Extension Stretch, Pronation &amp; Supination, Grip Strengthening (pain-free range)</div>
+      <div><strong style="color:#fff;">Tyler Twist Protocol:</strong>
+        <span class="metric-pill">3×15 reps</span>
+        <span class="metric-pill">Eccentric only</span>
+        <span class="metric-pill">Daily × 6 weeks</span>
+        <span class="metric-pill">Rubber bar device</span>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hand-fist" style="color: #fec600; margin-right: 0.7rem;"></i> 25. Golfer's Elbow (Medial Epicondylalgia) <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Flexor-pronator mass tendinopathy at medial epicondyle causing medial elbow pain with wrist flexion and pronation. Often accompanies ulnar nerve irritation (cubital tunnel).</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Eccentric Wrist Flexion, Wrist Flexion Stretch, Pronation &amp; Supination, Forearm Flexion, Finger Tendon Glides</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> Differentiate from ulnar nerve: check for small finger/ring finger tingling which indicates cubital tunnel syndrome — requires ulnar nerve mobilization.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-fingerprint" style="color: #fec600; margin-right: 0.7rem;"></i> 26. De Quervain's Tenosynovitis (Thumb Tendon) <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Stenosing tenosynovitis of APL and EPB tendons at radial styloid. Finkelstein test positive. Common in new mothers and mobile phone users (repetitive thumb scrolling).</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Thumb Opposition, Radial Nerve Floss, Wrist Extension (avoiding thumb-in-fist position), Ice massage to first dorsal compartment</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hand-point-up" style="color: #fec600; margin-right: 0.7rem;"></i> 27. Trigger Finger &amp; Dupuytren's Contracture <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Trigger finger (stenosing flexor tenosynovitis) causes a painful snap when flexing/extending a finger. Dupuytren's causes palmar fibromatosis pulling fingers into flexion.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Finger Tendon Glides (5-position sequence), Finger Extension Stretches, Intrinsic muscle strengthening, Web-space stretching</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="wrist">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hand-sparkles" style="color: #fec600; margin-right: 0.7rem;"></i> 28. Wrist Sprain &amp; TFCC Injury Rehab <span class="reh-tag tag-wrist">Wrist &amp; Hand</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Triangular fibrocartilage complex (TFCC) tears from FOOSH injury or rotational loading cause ulnar-sided wrist pain. Radioulnar instability testing confirms diagnosis.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Acute (0–3w)</strong> Splinting in neutral, pain-free ROM, no pronation/supination</div>
+        <div class="phase-box"><strong>Sub-Acute (3–6w)</strong> Progressive forearm rotation, grip work, wrist stability exercises</div>
+        <div class="phase-box"><strong>Return (6–12w)</strong> Load-bearing, impact activities, sport-specific gripping</div>
+      </div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ CORE ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-circle-half-stroke" style="color: #ff6432; margin-right: 0.7rem;"></i> 29. Core Dysfunction &amp; Abdominal Separation (Diastasis Recti) <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Inter-recti distance &gt;2.5cm indicating linea alba dysfunction. Common post-partum — requires transversus abdominis re-education before any traditional abdominal exercises.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Transversus Abdominis Activation (TvA), Diaphragmatic Breathing, Dead Bug (gentle), Pelvic Floor Contraction, Bird-Dog (modified)</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Traditional crunches, sit-ups, oblique twists, and heavy lifting until IRD is &lt;2cm and linea alba tension is restored.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-shield" style="color: #ff6432; margin-right: 0.7rem;"></i> 30. Core Stabilization for Chronic Back Pain <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Motor control deficits in multifidus and TvA activation timing are linked to recurrent low back pain. Specific stabilization exercises (SSE) retrain the deep intrinsic stabilizer system.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Plank Core Hold, Dead Bug, Bird-Dog, Pelvic Tilt, Side Plank, Glute Bridge
+        <br><span class="metric-pill"><i class="fa-solid fa-fire"></i> Progressive overload weekly</span>
+      </div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> The Plank assessment monitors hip sagging in real time — a common form fault that shifts load from core to lumbar extensors, increasing injury risk.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-swimming" style="color: #ff6432; margin-right: 0.7rem;"></i> 31. Pelvic Floor Dysfunction &amp; Urinary Incontinence <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Pelvic floor weakness (hypotonic) or overactivity (hypertonic) causing stress or urge urinary incontinence. Kegel exercises are first-line — but only effective for hypotonic dysfunction.</p>
+      <div><strong style="color:#fff;">Key Exercises (Hypotonic):</strong> Kegel Contractions (fast + slow), Pelvic Bridge, Deep Squat with lift, Core &amp; Diaphragm coordination</div>
+      <div><strong style="color:#fff;">Key Exercises (Hypertonic):</strong> Pelvic floor drops (reverse Kegel), Diaphragmatic breathing, Hip Flexor Release, Child's Pose</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-lungs" style="color: #ff6432; margin-right: 0.7rem;"></i> 32. Breathing Pattern Disorders &amp; Respiratory Rehab <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Paradoxical breathing (apical/chest-dominant) reduces diaphragmatic excursion, increases thoracic tension, and elevates cortisol. Impacts core pressure management and spinal stability.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> 360° Diaphragmatic Breathing, Box Breathing (4-4-4-4), Crocodile Breathing (prone), Intraabdominal Pressure training, Yoga Nidra breathing</div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ NEURO & BALANCE ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-brain" style="color: var(--status-error); margin-right: 0.7rem;"></i> 33. Stroke Rehabilitation &amp; Neurological Recovery <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Post-stroke neuroplasticity relies on task-specific repetitive movement to rewire neural pathways. AI pose detection enables objective assessment of movement quality during neurological rehabilitation.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Early (0–3 mo)</strong> Bed mobility, transfers, sitting balance, basic ADL retraining</div>
+        <div class="phase-box"><strong>Sub-Acute (3–6 mo)</strong> Gait training, arm reach tasks, constraint-induced movement therapy</div>
+        <div class="phase-box"><strong>Chronic (&gt;6 mo)</strong> Intensive task practice, virtual reality, robotic assist, continued gains possible</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Weight shifting, Arm Reach &amp; Grasp, Shoulder Rotation (affected side), Core Sitting Balance, Ankle Dorsiflexion</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-falling-burst" style="color: var(--status-error); margin-right: 0.7rem;"></i> 34. Fall Prevention &amp; Balance Rehabilitation <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Falls are the leading cause of injury in adults &gt;65. Multifactorial — vestibular, proprioceptive, visual, and muscular deficits all contribute. Otago Exercise Programme is evidence-based.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Tree Pose Balance, High Knee Lift, Single-Leg Stand, Tandem Walking, Calf Raise, Backward Walking, Stepping patterns</div>
+      <div><strong style="color:#fff;">Otago Programme (home-based):</strong>
+        <span class="metric-pill">3× weekly</span>
+        <span class="metric-pill">≥6 months</span>
+        <span class="metric-pill">40% fall reduction</span>
+      </div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> <strong>AI Tip:</strong> The Tree Pose Balance assessment tracks centre-of-mass sway through hip landmark analysis — quantifying balance improvement over sessions.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-dna" style="color: var(--status-error); margin-right: 0.7rem;"></i> 35. Parkinson's Disease Exercise Therapy <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Exercise modifies Parkinson's disease progression through dopaminergic neuroprotection. High-intensity aerobic exercise (HIIT), boxing, and tango dancing show superior outcomes vs. standard PT.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Large-amplitude movement training (LSVT BIG), Boxing-inspired punches, Tango rhythm stepping, Balance challenge, High-step marching</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-wind" style="color: var(--status-error); margin-right: 0.7rem;"></i> 36. Vestibular Rehabilitation &amp; BPPV <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Benign paroxysmal positional vertigo (BPPV) from loose otoconia in semicircular canals — most common cause of vertigo. Epley maneuver has 80% single-treatment success rate.</p>
+      <div><strong style="color:#fff;">Epley Maneuver:</strong> Series of 4 head positions held 30s each, designed to reposition displaced otoconia from posterior canal</div>
+      <div><strong style="color:#fff;">VRT Exercises:</strong> Gaze stabilization, Habituation exercises, Balance retraining, Brandt-Daroff exercises</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-head-side-virus" style="color: var(--status-error); margin-right: 0.7rem;"></i> 37. Concussion &amp; Post-Concussion Syndrome Rehab <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Sub-symptom threshold aerobic exercise accelerates concussion recovery — Zurich Consensus Protocol governs return-to-play stages. AI movement analysis helps monitor gait &amp; balance recovery objectively.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Stage 1</strong> Rest until asymptomatic (24–48h), then sub-threshold aerobic activity</div>
+        <div class="phase-box"><strong>Stage 2–3</strong> Sport-specific exercise without contact, complex movement patterns</div>
+        <div class="phase-box"><strong>Stage 4–5</strong> Non-contact drills, full practice, medical clearance, return to competition</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Tandem Walking, Balance Board, Visual tracking, Cervical stabilization, Neck strengthening</div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ SPORTS REHAB ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-futbol" style="color: #4facfe; margin-right: 0.7rem;"></i> 38. Ankle Sprain Rehabilitation (Lateral &amp; High) <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> ATFL/CFL lateral ligament sprains are the most common sports injury. PEACE &amp; LOVE protocol replaces RICE — Protection, Elevation, Avoid anti-inflammatory, Compression, Education, then Load, Optimism, Vascularisation, Exercise.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Phase 1 (0–3d)</strong> PEACE — protect, elevate, avoid NSAIDS, compress, education</div>
+        <div class="phase-box"><strong>Phase 2 (3–14d)</strong> LOVE — progressive weight bearing, balance training, ROM restoration</div>
+        <div class="phase-box"><strong>Phase 3 (2–6w)</strong> Proprioceptive retraining, agility, return-to-sport criteria</div>
+      </div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Ankle Circles, Calf Raise (progressive), Single Leg Balance, Wobble Board, Hop &amp; Stick</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-baseball-bat-ball" style="color: #4facfe; margin-right: 0.7rem;"></i> 39. Thrower's Shoulder &amp; GIRD (Internal Rotation Deficit) <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Glenohumeral internal rotation deficit (GIRD) is &gt;18° loss in throwing athletes from posterior capsule tightening. Creates abnormal humeral head translation and labral stress during deceleration phase.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Sleeper Stretch (posterior capsule), Cross-Body Stretch, ER strengthening, Rotator cuff eccentric, Scapular position correction</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> The Shoulder External Rotation assessment monitors shoulder horizontal alignment — key for identifying asymmetrical GIRD patterns.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-biking" style="color: #4facfe; margin-right: 0.7rem;"></i> 40. Cyclist's Injuries &amp; Bike Fit Rehabilitation <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Cycling injuries include knee pain (PFPS, ITBS), lower back pain (flexed posture), neck/upper trapezius overload, and saddle-related perineal pressure. Bike fit is the cornerstone of prevention.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Hip Flexor Lunge, Piriformis Stretch, Glute Bridge, Thoracic Extension, Neck Roll, Hamstring Stretch, Quadriceps Stretch</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-swimmer" style="color: #4facfe; margin-right: 0.7rem;"></i> 41. Swimmer's Shoulder &amp; Overuse Rehab <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Shoulder impingement &amp; rotator cuff strain from high-volume overhead freestyle swimming. Mid-pull hand crossover and dropped elbow during catch are primary biomechanical faults.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Shoulder External Rotation, Scapular Retraction, Cross-Body Stretch, Triceps Stretch, Core Plank, Lat Pull-Through</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-skiing" style="color: #4facfe; margin-right: 0.7rem;"></i> 42. Runner's Knee &amp; Tibial Stress Fracture Prevention <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Runner's knee (PFPS) and medial tibial stress syndrome (shin splints) are load-related injuries from training volume errors. The 10% rule — increasing mileage no faster than 10% per week — is essential prevention.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Calf Raise (bilateral &amp; single-leg), Hip Abductor strengthening, Foot Arch activation, Anterior Tibialis activation, High Knee Lift</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-trophy" style="color: #4facfe; margin-right: 0.7rem;"></i> 43. Returning to Sport Post-Surgery Protocol <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Return-to-sport (RTS) decisions require biological healing, neuromuscular function, physical capacity, and psychological readiness. AI pose analysis provides objective functional metrics to guide RTS criteria.</p>
+      <div><strong style="color:#fff;">RTS Criteria Matrix:</strong>
+        <span class="metric-pill">Limb Symmetry Index &gt;90%</span>
+        <span class="metric-pill">Single-leg hop test ✓</span>
+        <span class="metric-pill">Pain ≤2/10 VAS</span>
+        <span class="metric-pill">Psychological readiness scale ≥95</span>
+      </div>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════ ADDITIONAL PROTOCOLS ═══════════════════════ -->
+
+  <details class="reh-section" data-cat="spine">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-dots-from-line" style="color: #b47dff; margin-right: 0.7rem;"></i> 44. Cervical Radiculopathy (Pinched Neck Nerve) <span class="reh-tag tag-spine">Spine</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Cervical disc herniation or foraminal stenosis causing nerve root compression — arm pain, weakness, and paraesthesia in a dermatomal pattern. C5-C6 and C6-C7 levels most commonly affected.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Chin Tuck, Neural Tension Release, Cervical Lateral Flexion (away from pain), Scapular Depression, Postural correction
+        <br><span class="metric-pill">Avoid: Cervical extension/rotation toward symptomatic side</span>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-hand-holding-medical" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 45. Post-Mastectomy &amp; Breast Cancer Rehab <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Post-mastectomy patients experience cording (axillary web syndrome), lymphoedema, and shoulder ROM deficits. Progressive ROM exercises are introduced 2–4 weeks post-surgery based on wound healing.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Pendulum Arm Swing, Progressive shoulder flexion (wall walk), Arm circles, Scapular mobility, Lymphatic drainage techniques</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Heavy lifting (&gt;2kg) on affected side, blood pressure cuff, injections on affected arm. Protect lymphoedema limb from infection.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-pregnant" style="color: var(--status-success); margin-right: 0.7rem;"></i> 46. Prenatal &amp; Postnatal Exercise Physiotherapy <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Pregnancy-related pelvic girdle pain (PGP), pubic symphysis diastasis, and sacroiliac joint dysfunction require modified exercises maintaining pelvic girdle stability throughout all trimesters.</p>
+      <div><strong style="color:#fff;">Safe Exercises (All Trimesters):</strong> Pelvic Floor contractions, Cat-Cow (modified), Glute Bridge, Clam, Side-lying exercises, Swimming, Walking</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Supine position after 16 weeks, heavy loading, high-impact activities, exercises causing pubic pain.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-heart-pulse" style="color: #ff6432; margin-right: 0.7rem;"></i> 47. Cardiac Rehabilitation Exercise Protocol <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Post-myocardial infarction or cardiac surgery rehabilitation uses structured aerobic and resistance training to improve cardiovascular fitness, reduce mortality, and return to functional independence.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Phase I (Hospital)</strong> Seated/standing activity, self-care ADLs, education</div>
+        <div class="phase-box"><strong>Phase II (Outpatient)</strong> Supervised monitored exercise, ECG-guided intensity, 36 sessions</div>
+        <div class="phase-box"><strong>Phase III (Maintenance)</strong> Independent exercise program, aerobic + resistance training</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-wheelchair" style="color: var(--status-error); margin-right: 0.7rem;"></i> 48. Multiple Sclerosis (MS) Exercise Therapy <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Aerobic and resistance training is beneficial for MS — improves fatigue, strength, balance, and quality of life without exacerbating the condition (Uhthoff's phenomenon: exercise-induced heat sensitivity, not worsening).</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Seated strength training, Balance exercises, Cooling vests during aerobic work, Yoga for relaxation, Progressive mobility training</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-syringe" style="color: var(--status-success); margin-right: 0.7rem;"></i> 49. Total Hip &amp; Knee Replacement Rehabilitation <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Total joint replacement rehab focuses on early mobilization to prevent DVT, achieve functional ROM (&gt;90° knee flexion, 0° extension), and restore quadriceps strength for return to daily activities by 6–12 weeks.</p>
+      <div class="reh-phases">
+        <div class="phase-box"><strong>Post-Op Day 1</strong> Bed-to-chair transfers, quad sets, SLR, ankle pumps</div>
+        <div class="phase-box"><strong>Week 1–3</strong> Progressive gait training, ROM exercises, step training</div>
+        <div class="phase-box"><strong>Week 6–12</strong> Stair climbing, stationary bike, return to driving, community walking</div>
+      </div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> THR Precautions: No hip flexion &gt;90°, no internal rotation, no cross-leg sitting for 6–12 weeks.</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="shoulder">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-arrows-to-dot" style="color: var(--accent-cyan); margin-right: 0.7rem;"></i> 50. Occupational Health &amp; Repetitive Strain Prevention <span class="reh-tag tag-shoulder">Shoulder</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Work-related musculoskeletal disorders (WRMSDs) from repetitive movement, sustained awkward postures, and heavy lifting affect 1 in 3 workers. Prevention through ergonomic design and microbreaks is most effective.</p>
+      <div><strong style="color:#fff;">Key Interventions:</strong> Workstation ergonomics assessment, Microbreak exercises (5 min/hour), Shoulder shrugs, Wrist Extension stretches, Neck Roll, Thoracic Rotation, Postural reset program</div>
+      <div><strong style="color:#fff;">Desk Worker Protocol (Every 60 min):</strong>
+        <span class="metric-pill">5× Chin Tucks</span>
+        <span class="metric-pill">5× Thoracic Rotations</span>
+        <span class="metric-pill">5× Wrist Circles</span>
+        <span class="metric-pill">Stand &amp; Walk 2 min</span>
+      </div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-gauge-high" style="color: #4facfe; margin-right: 0.7rem;"></i> 51. Overtraining Syndrome &amp; Recovery Optimization <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Overtraining syndrome (OTS) presents as performance decline, fatigue, mood disturbance, and increased injury rate from chronic training load exceeding recovery capacity. HRV monitoring guides return to training.</p>
+      <div><strong style="color:#fff;">Recovery Protocol:</strong> Mandatory rest 2–4 weeks, sleep optimization, nutritional support (protein 1.6–2g/kg), gentle yoga, stress management, progressive return guided by HRV data</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="core">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-moon" style="color: #ff6432; margin-right: 0.7rem;"></i> 52. Sleep-Related Musculoskeletal Pain &amp; Recovery <span class="reh-tag tag-core">Core</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Poor sleep quality elevates inflammatory markers, increases central sensitization, and reduces pain thresholds. 7–9 hours of sleep reduces musculoskeletal injury risk by 60% in athletes.</p>
+      <div><strong style="color:#fff;">Therapeutic Exercise:</strong> Yoga Nidra (body scan relaxation), Restorative Yoga before bed, Diaphragmatic breathing, Progressive Muscle Relaxation (PMR), Gentle Cat-Cow</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="neuro">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-person-rays" style="color: var(--status-error); margin-right: 0.7rem;"></i> 53. Fibromyalgia &amp; Chronic Pain Syndrome Management <span class="reh-tag tag-neuro">Neuro &amp; Balance</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Fibromyalgia involves central sensitization with widespread musculoskeletal pain, fatigue, and cognitive dysfunction. Aerobic exercise (aquatic therapy, walking, cycling) is the most evidence-based treatment — superior to pharmacology.</p>
+      <div><strong style="color:#fff;">Pacing Principle:</strong> Start below symptom threshold — 5–10 min walking — and increase by 10% weekly. Avoid the boom-bust cycle of overexertion followed by prolonged flare.</div>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Gentle Yoga, Tai Chi, Aquatic therapy, Warm water walking, Breathing exercises, Progressive relaxation</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="hip">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-bone" style="color: var(--status-success); margin-right: 0.7rem;"></i> 54. Osteoporosis &amp; Bone Health Exercise Protocol <span class="reh-tag tag-hip">Hip &amp; Leg</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Weight-bearing and resistance exercise stimulates bone mineral density through mechano-transduction. High-impact activities (jumping, hopping) combined with resistance training provide greatest osteogenic stimulus.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Calf Raise (impact loading), Squats, Glute Bridge, Resistance band exercises, Walking, Heel drops</div>
+      <div class="reh-stop"><i class="fa-solid fa-triangle-exclamation"></i> Avoid: Spinal flexion under load, high-fall-risk activities, exercises recreating vertebral fracture mechanism (forward bending with weight).</div>
+    </div>
+  </details>
+
+  <details class="reh-section" data-cat="sport">
+    <summary class="reh-summary">
+      <span><i class="fa-solid fa-star" style="color: #4facfe; margin-right: 0.7rem;"></i> 55. Youth Athlete Growth &amp; Apophysitis Prevention <span class="reh-tag tag-sport">Sports Rehab</span></span>
+      <i class="fa-solid fa-chevron-down" style="color: var(--text-subtle); font-size: 0.8rem;"></i>
+    </summary>
+    <div class="reh-body">
+      <p><strong style="color:#fff;">Condition Overview:</strong> Osgood-Schlatter (tibial tuberosity), Sever's (calcaneal apophysis), and Little Leaguer's shoulder (proximal humeral apophysitis) are growth-plate stress injuries in adolescent athletes during peak growth velocity.</p>
+      <div><strong style="color:#fff;">Key Exercises:</strong> Quad Stretch, Hamstring Stretch, Calf Stretch, Reduced-impact training modifications, Swimming as cross-training, Core strengthening</div>
+      <div class="reh-tip"><i class="fa-solid fa-lightbulb"></i> During Peak Growth Velocity (girls 11–13y, boys 13–15y), reduce training load by 20–30% and monitor apophyseal pain closely.</div>
+    </div>
+  </details>
+
+</div><!-- end rehContainer -->
+
+<script>
+window.rehFilter = function(btn, cat) {
+  document.querySelectorAll('.reh-btn').forEach(b => b.classList.remove('reh-active'));
+  btn.classList.add('reh-active');
+  document.querySelectorAll('.reh-section').forEach(s => {
+    s.style.display = (cat === 'all' || s.dataset.cat === cat) ? '' : 'none';
+  });
+};
+
+window.rehSearchFn = function(q) {
+  const query = q.toLowerCase();
+  document.querySelectorAll('.reh-section').forEach(s => {
+    const text = s.textContent.toLowerCase();
+    s.style.display = text.includes(query) ? '' : 'none';
+  });
+};
+</script>
+{% endblock %}

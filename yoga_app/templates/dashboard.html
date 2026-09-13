@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+  <div>
+    <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700;">
+      Good Morning, {{ session.fullname }} 👋
+    </h1>
+    <p style="color: var(--text-muted); font-size: 1.05rem;">Ready for today's AI-assisted rehabilitation & recovery session?</p>
+  </div>
+  <a href="{{ url_for('assessment') }}" class="btn btn-primary" style="padding: 0.9rem 1.8rem; font-size: 1rem;">
+    <i class="fa-solid fa-play"></i> START SESSION NOW
+  </a>
+</div>
+
+<!-- Main Quick Start Banner -->
+<div style="background: linear-gradient(135deg, rgba(0, 242, 254, 0.12) 0%, rgba(79, 172, 254, 0.08) 100%); border: 1px solid var(--border-glow); border-radius: var(--radius-lg); padding: 2.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; box-shadow: var(--shadow-glow);">
+  <div>
+    <span class="hud-badge" style="margin-bottom: 1rem; display: inline-flex;"><i class="fa-solid fa-bolt" style="color: var(--accent-cyan);"></i> RECOMMENDED FOR TODAY</span>
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; margin-bottom: 0.5rem;">Shoulder Rotation & Posture Analysis</h2>
+    <p style="color: var(--text-muted); max-width: 600px; font-size: 0.95rem;">
+      Real-time camera movement analysis evaluates shoulder joint mobility, detects flared elbow positions, and monitors rotation symmetry.
+    </p>
+  </div>
+  <a href="{{ url_for('assessment', exercise='Shoulder Rotation') }}" class="btn btn-primary" style="padding: 1rem 2rem;">
+    <i class="fa-solid fa-camera"></i> Start AI Session
+  </a>
+</div>
+
+<!-- 4 Core Feature Cards -->
+<h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; margin-bottom: 1.2rem;">Rehabilitation & Fitness Modules</h2>
+<div class="grid-cards" style="margin-bottom: 3.5rem;">
+  <!-- Card 1: Pose Recognition -->
+  <div class="card">
+    <div class="card-icon"><i class="fa-solid fa-person-dots-from-line"></i></div>
+    <h3 class="card-title">Pose Recognition</h3>
+    <p class="card-desc">Analyze your physical movement & joint angles with MediaPipe Holistic AI in real time.</p>
+    <a href="{{ url_for('assessment') }}" class="btn btn-primary" style="width: 100%;">Start Assessment</a>
+  </div>
+
+  <!-- Card 2: Yoga Videos -->
+  <div class="card">
+    <div class="card-icon"><i class="fa-solid fa-spa"></i></div>
+    <h3 class="card-title">Yoga Videos</h3>
+    <p class="card-desc">Follow guided yoga, cat-cow stretches, and mobility sessions with streaming tutorials.</p>
+    <a href="{{ url_for('yoga') }}" class="btn btn-secondary" style="width: 100%;">Explore Yoga</a>
+  </div>
+
+  <!-- Card 3: Exercise Library -->
+  <div class="card">
+    <div class="card-icon"><i class="fa-solid fa-book-medical"></i></div>
+    <h3 class="card-title">Exercise Library</h3>
+    <p class="card-desc">Browse targeted physiotherapy exercises with step-by-step guidance & mistake breakdowns.</p>
+    <a href="{{ url_for('exercises') }}" class="btn btn-secondary" style="width: 100%;">View Exercises</a>
+  </div>
+
+  <!-- Card 4: Rehab Guide -->
+  <div class="card">
+    <div class="card-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+    <h3 class="card-title">Rehab Guide</h3>
+    <p class="card-desc">Learn safe recovery and mobility techniques for shoulder pain, wrist strain, and spine care.</p>
+    <a href="{{ url_for('rehabilitation') }}" class="btn btn-secondary" style="width: 100%;">Read Guide</a>
+  </div>
+</div>
+
+<!-- Stats & Recent History Grid -->
+<div style="display: grid; grid-template-columns: 320px 1fr; gap: 2rem;">
+  <!-- Overview Summary -->
+  <div class="card" style="justify-content: flex-start;">
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
+      <i class="fa-solid fa-chart-pie" style="color: var(--accent-cyan);"></i> Progress Overview
+    </h3>
+
+    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+      <div class="metric-group">
+        <div class="metric-label">Total Sessions Completed</div>
+        <div class="metric-value">{{ stats.total_sessions if stats else 0 }}</div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-label">Average Form Score</div>
+        <div class="metric-value" style="color: var(--status-success);">
+          {{ stats.avg_score if stats and stats.avg_score else 0 }}%
+        </div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-label">Total Repetitions Counted</div>
+        <div class="metric-value" style="color: var(--accent-cyan);">
+          {{ stats.total_reps if stats and stats.total_reps else 0 }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Sessions Table -->
+  <div class="card" style="justify-content: flex-start;">
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
+      <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-cyan);"></i> Recent AI Sessions
+    </h3>
+
+    {% if sessions %}
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted);">
+              <th style="padding: 0.8rem 1rem;">Exercise</th>
+              <th style="padding: 0.8rem 1rem;">Form Score</th>
+              <th style="padding: 0.8rem 1rem;">Accuracy</th>
+              <th style="padding: 0.8rem 1rem;">Reps</th>
+              <th style="padding: 0.8rem 1rem;">Date</th>
+              <th style="padding: 0.8rem 1rem;">Report</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessions %}
+              <tr style="border-bottom: 1px solid var(--border-light);">
+                <td style="padding: 1rem; font-weight: 600;">{{ s.exercise }}</td>
+                <td style="padding: 1rem;">
+                  <span style="color: var(--status-success); font-weight: 700;">{{ s.form_score }}%</span>
+                </td>
+                <td style="padding: 1rem; color: var(--text-muted);">{{ s.accuracy }}%</td>
+                <td style="padding: 1rem;">{{ s.repetitions }}</td>
+                <td style="padding: 1rem; color: var(--text-subtle); font-size: 0.85rem;">{{ s.created_at[:10] }}</td>
+                <td style="padding: 1rem;">
+                  <a href="{{ url_for('session_report', session_id=s.id) }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                    View
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; opacity: 0.5; margin-bottom: 1rem;"></i>
+        <p>No sessions recorded yet. Start your first AI movement analysis session!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Yoga Studio — AI Physiotherapy & Exercise Platform{% endblock %}</title>
+  <meta name="description" content="AI-Powered Physiotherapy, Rehabilitation, Yoga and Real-Time Automated Exercise Assessment Platform.">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Design System -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="{{ url_for('landing') }}" class="nav-brand">
+      <div class="brand-icon"><i class="fa-solid fa-person-dots-from-line"></i></div>
+      <span>Yoga Studio AI</span>
+    </a>
+
+    <ul class="nav-links">
+      {% if session.user_id %}
+        <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+        <li><a href="{{ url_for('assessment') }}" class="nav-link {% if request.endpoint == 'assessment' %}active{% endif %}"><i class="fa-solid fa-video"></i> AI Assessment</a></li>
+        <li><a href="{{ url_for('exercises') }}" class="nav-link {% if request.endpoint in ['exercises', 'exercise_detail'] %}active{% endif %}"><i class="fa-solid fa-dumbbell"></i> Exercises</a></li>
+        <li><a href="{{ url_for('yoga') }}" class="nav-link {% if request.endpoint == 'yoga' %}active{% endif %}"><i class="fa-solid fa-spa"></i> Yoga</a></li>
+        <li><a href="{{ url_for('rehabilitation') }}" class="nav-link {% if request.endpoint == 'rehabilitation' %}active{% endif %}"><i class="fa-solid fa-heart-pulse"></i> Rehab Guide</a></li>
+        <li><a href="{{ url_for('progress') }}" class="nav-link {% if request.endpoint == 'progress' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i> Progress</a></li>
+      {% else %}
+        <li><a href="{{ url_for('landing') }}" class="nav-link">Home</a></li>
+        <li><a href="{{ url_for('exercises') }}" class="nav-link">Exercise Library</a></li>
+        <li><a href="{{ url_for('yoga') }}" class="nav-link">Yoga Videos</a></li>
+        <li><a href="{{ url_for('rehabilitation') }}" class="nav-link">Rehab Guide</a></li>
+      {% endif %}
+    </ul>
+
+    <div class="nav-user">
+      {% if session.user_id %}
+        <a href="{{ url_for('profile') }}" class="btn btn-secondary"><i class="fa-solid fa-user-circle"></i> {{ session.fullname }}</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger"><i class="fa-solid fa-right-from-bracket"></i></a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">Sign In</a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Toast Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-container">
+        {% for category, message in messages %}
+          <div class="toast {{ category }}">
+            {% if category == 'success' %}
+              <i class="fa-solid fa-circle-check" style="color: var(--status-success);"></i>
+            {% elif category == 'error' %}
+              <i class="fa-solid fa-triangle-exclamation" style="color: var(--status-error);"></i>
+            {% else %}
+              <i class="fa-solid fa-circle-info" style="color: var(--accent-cyan);"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main Content Wrapper -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Dark Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <p>&copy; 2026 Yoga Studio AI. Production Final-Year Engineering Project for AI Physiotherapy & Automated Assessment.</p>
+      <div class="social-links">
+        <a href="https://www.facebook.com/WorldPhysio" target="_blank" rel="noopener noreferrer" class="social-icon" title="World Physiotherapy on Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="https://www.youtube.com/@BobandBrad" target="_blank" rel="noopener noreferrer" class="social-icon" title="Bob & Brad Physiotherapy on YouTube"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://www.instagram.com/physiotutors/" target="_blank" rel="noopener noreferrer" class="social-icon" title="Physiotutors on Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.linkedin.com/company/world-physiotherapy/" target="_blank" rel="noopener noreferrer" class="social-icon" title="World Physiotherapy on LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Master JavaScript -->
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

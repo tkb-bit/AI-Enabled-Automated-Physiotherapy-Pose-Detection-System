@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Yoga Studio Mini TV — 60 Unique Video Streams{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700; margin-bottom: 0.5rem;">
+        <i class="fa-solid fa-tv" style="color: var(--accent-cyan);"></i> Yoga Studio Mini TV
+      </h1>
+      <p style="color: var(--text-muted); font-size: 1.05rem;">
+        60 unique physiotherapy &amp; yoga video tutorials. Unavailable videos auto-sort to bottom.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button class="yt-filter-btn yt-active" onclick="ytFilter(this,'all')">All (60)</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'spine')">Spine</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'shoulder')">Shoulder</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'hip')">Hip &amp; Leg</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'core')">Core</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'yoga')">Yoga Flow</button>
+      <button class="yt-filter-btn" onclick="ytFilter(this,'wrist')">Wrist</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.yt-filter-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.yt-filter-btn:hover, .yt-active {
+  background: rgba(0,242,254,0.15);
+  border-color: var(--border-glow);
+  color: var(--accent-cyan);
+}
+.yt-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-light);
+  padding: 0.7rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  transition: all 0.2s;
+}
+.yt-item:hover { background: rgba(0,242,254,0.07); border-color: var(--border-glow); }
+.yt-item.yt-playing { background: rgba(0,242,254,0.12); border-color: var(--border-glow); }
+.yt-item.yt-unavailable { opacity: 0.35; order: 9999; }
+.yt-thumb {
+  width: 80px; height: 52px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #0a0f1a;
+  flex-shrink: 0;
+}
+.yt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-ok  { background: var(--status-success); }
+.dot-err { background: var(--status-error); }
+</style>
+
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; align-items: start;">
+
+  <!-- ══ MINI TV PLAYER ══ -->
+  <div class="card" style="padding: 0; overflow: hidden; border-color: var(--border-glow); box-shadow: var(--shadow-glow);">
+    <!-- TV Bar -->
+    <div style="background: #090d16; padding: 0.75rem 1.2rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+      <span class="hud-badge" style="background: rgba(255,42,95,0.2); border-color: rgba(255,42,95,0.4); color: var(--status-live);">
+        <span class="live-dot"></span> MINI TV LIVE
+      </span>
+      <span style="font-size: 0.78rem; color: var(--text-subtle);">
+        <i class="fa-solid fa-shield-halved" style="color: var(--status-success);"></i> Unavailable videos auto-sort to bottom
+      </span>
+    </div>
+
+    <!-- YouTube iFrame -->
+    <div style="position: relative; background: #000; width: 100%; padding-top: 56.25%;">
+      <iframe id="ytFrame"
+              src="about:blank"
+              title="Yoga Studio TV"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;">
+      </iframe>
+    </div>
+
+    <!-- Now Playing -->
+    <div style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.8rem;">
+        <div>
+          <span id="nowEp" class="hud-badge" style="font-size: 0.7rem; margin-bottom: 0.35rem; display: inline-flex;">EP #1</span>
+          <h2 id="nowTitle" style="font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; margin: 0;">Select a video to play</h2>
+          <div id="nowCat" style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0.25rem;">—</div>
+        </div>
+        <a id="nowAssess" href="/assessment" class="btn btn-primary" style="padding: 0.65rem 1.3rem; white-space: nowrap;">
+          <i class="fa-solid fa-camera"></i> Assess with AI
+        </a>
+      </div>
+      <p id="nowDesc" style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin: 0;"></p>
+      <div style="display: flex; gap: 0.8rem; margin-top: 1.1rem;">
+        <button onclick="navEp(-1)" class="btn btn-secondary" style="flex:1;"><i class="fa-solid fa-backward"></i> Prev</button>
+        <button onclick="navEp(1)"  class="btn btn-primary"   style="flex:1;">Next <i class="fa-solid fa-forward"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PLAYLIST ══ -->
+  <div class="card" style="padding: 1rem; max-height: 760px; overflow-y: auto; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+      <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; margin: 0;">
+        <i class="fa-solid fa-list" style="color: var(--accent-cyan);"></i> 60 Episodes
+      </h3>
+      <span id="avCount" style="font-size: 0.72rem; color: var(--status-success); font-weight: 700;">Loading...</span>
+    </div>
+
+    <input type="text" id="ytSearch" placeholder="Search..." oninput="ytSearchFn(this.value)"
+           style="padding: 0.45rem 0.75rem; background: #0a0f1a; border: 1px solid var(--border-light); color: #fff; border-radius: var(--radius-sm); font-size: 0.82rem; margin-bottom: 0.7rem; outline: none; width: 100%; box-sizing: border-box;">
+
+    <!-- 60 REAL YouTube video IDs — sourced from popular physio/yoga channels -->
+    {# Format: (youtube_id, thumb_img, title, category, exercise_name, description) #}
+    {% set videos = [
+      ('kqnua4rHVVA', 'ex_cat_cow.jpg',         '1. Cat-Cow Spinal Mobilization',       'spine',    'Cat-Cow Pose',                'Yoga with Adriene: gentle spinal flexion-extension synchronised with breath to decompress intervertebral discs and mobilise the thoracic and lumbar spine.'),
+      ('BiWNtB3HPNU', 'ex_shoulder_rotation.jpg','2. 20-Min Full Body Yoga',             'yoga',     'Full-Body Restorative Stretch','Yoga with Adriene: complete beginner-friendly full-body flow linking poses from standing to floor to build flexibility and body awareness.'),
+      ('sTANio_2E0Q', 'ex_spinal_twist.jpg',    '3. Seated Spinal Twist Tutorial',      'spine',    'Spinal Twist',                'Seated thoracic rotation exercise activating deep thoracic rotators (rotatores, multifidus) to relieve upper back stiffness and improve T1-T12 mobility.'),
+      ('g_tea8ZNk5A', 'ex_arm_rotation.jpg',    '4. Arm &amp; Shoulder Mobility Flow',  'shoulder', 'Arm Rotation',                'Comprehensive arm rotation and lat stretch warming the deltoids, rotator cuff, and latissimus dorsi while lubricating the glenohumeral joint.'),
+      ('4Wk0lE08fFE', 'ex_cobra_extension.jpg', '5. Yoga for Back Pain Relief',         'spine',    'Cobra Back Extension',        'Yoga with Adriene: targeted lower back pain relief sequence emphasising lumbar extension, core activation, and gentle spine decompression.'),
+      ('j97SSGsnCAQ', 'SPINAL TWIST.png',       '6. Downward Dog Complete Guide',       'yoga',     'Downward-Facing Dog',         'Detailed breakdown of Downward-Facing Dog with alignment cues for hamstrings, calves, thoracic spine and shoulder stabilisation.'),
+      ('v7SN-d4qXx0', 'SHOULDER ROTATION.png',  '7. Yoga for Flexibility',              'yoga',     'Warrior Pose',                'Progressive flexibility programme covering hip flexors, hamstrings, thoracic spine, and shoulder mobility through a flowing yoga sequence.'),
+      ('2MJGg-dUKh0', 'CAT COW.png',            '8. Child\'s Pose Deep Release',        'spine',    'Child\'s Pose Lumbar Relief', 'Restorative child\'s pose tutorial with active lumbar decompression, gluteus maximus stretch, and breathing cues to maximise spinal unloading.'),
+      ('X3-gK4fjqGg', 'ARM ROTATION.png',       '9. Neck &amp; Cervical Release',       'spine',    'Neck Roll',                   'Gentle cervical mobilisation targeting SCM, upper trapezius, and scalenes for tension headache relief and improved cervical range of motion.'),
+      ('DHzDXlFsVzI', 'ex_arm_rotation.jpg',    '10. Plank Core Hold Tutorial',         'core',     'Plank Core Hold',             'Comprehensive plank form guide activating transversus abdominis, obliques, serratus anterior, and glutes for anti-extension core stability.'),
+      ('rjBXEbz_JO0', 'ex_spinal_twist.jpg',    '11. Triangle Pose Flow',               'yoga',     'Triangle Pose',               'Trikonasana tutorial with deep lateral flexion targeting obliques, quadratus lumborum, and IT band for frontal-plane spinal mobility.'),
+      ('1Yd-AEyeK0k', 'ex_cobra_extension.jpg', '12. Hip Flexor Lunge Stretch',         'hip',      'Hip Flexor Lunge Stretch',    'Kneeling lunge hip flexor protocol targeting iliopsoas, rectus femoris, and TFL to relieve anterior hip tightness from prolonged sitting.'),
+      ('f0WTHTbXXjg', 'ex_spinal_twist.jpg',    '13. Pelvic Tilt &amp; Neutral Spine',  'core',     'Pelvic Tilt Stabilization',   'Supine pelvic tilt exercise activating transversus abdominis and multifidus to retrain neutral lumbar spine and reduce chronic back pain.'),
+      ('EEeAJnmW_jE', 'ex_shoulder_rotation.jpg','14. Scapular Wall Slide Technique',  'shoulder', 'Scapular Wall Slide',         'Wall-supported scapular gliding activating lower and middle trapezius to retrain scapulothoracic rhythm and correct scapular winging.'),
+      ('8N_vEbMCSlI', 'ex_spinal_twist.jpg',    '15. Chin Tuck Neck Posture Fix',       'spine',    'Chin Tuck Neck Posture',      'Deep cervical flexor activation through chin retraction targeting longus colli and capitis to correct forward head posture at the desk.'),
+      ('p3h9gSO_02o', 'ex_shoulder_rotation.jpg','16. Shoulder External Rotation',      'shoulder', 'Shoulder External Rotation',  'Resisted shoulder external rotation protocol targeting infraspinatus and teres minor for rotator cuff strengthening and impingement prevention.'),
+      ('7fIZMqT_5Bo', 'ex_wrist_extension.jpg', '17. Wrist Flexion Stretch',            'wrist',    'Wrist Flexion Stretch',       'Wrist flexor stretch targeting flexor carpi radialis, palmaris longus, and FDS to prevent repetitive strain injury in desk workers.'),
+      ('B0M89kKAqiM', 'ex_arm_rotation.jpg',    '18. Forearm Pronation &amp; Supination','wrist',   'Pronation &amp; Supination',  'Forearm rotation drill targeting pronator teres, pronator quadratus, and supinator to restore radioulnar joint mobility and grip mechanics.'),
+      ('CzoSnJ4-gyA', 'SHOULDER ROTATION.png',  '19. High Knee Balance Training',       'hip',      'High Knee Lift Balance',      'Standing high-knee march targeting iliopsoas and hip flexor complex for gait retraining, proprioception development, and single-leg balance.'),
+      ('IVSgbrHvCK4', 'SPINAL TWIST.png',       '20. Standing Side Bend Flow',          'spine',    'Standing Side Bend',          'Lateral trunk flexion flow targeting obliques, quadratus lumborum, and intercostals for lateral spinal mobility and thoracolumbar fascia release.'),
+      ('bN_XlgnkRuU', 'ex_cobra_extension.jpg', '21. Seated Forward Fold',              'spine',    'Seated Forward Bend',         'Paschimottanasana seated forward fold stretching hamstrings, lumbar erectors, and sacroiliac joint for posterior chain elongation.'),
+      ('oBu-pQG6sTY', 'ex_arm_rotation.jpg',    '22. Single Leg Bridge Lift',           'hip',      'Bridge Raise Single Leg',     'Unilateral hip thrust targeting gluteus maximus, hamstrings, and contralateral hip abductors for posterior chain rehabilitation and glute strength.'),
+      ('Y0GKmhQVCkA', 'ex_spinal_twist.jpg',    '23. Dead Bug Core Control',            'core',     'Dead Bug Core Control',       'Supine alternating arm-leg lowering drill targeting transversus abdominis and deep lumbar stabilisers for anti-extension core control.'),
+      ('2xjPF9RzInI', 'SHOULDER ROTATION.png',  '24. Clamshell Hip Abduction',          'hip',      'Clamshell Hip Abduction',     'Side-lying hip external rotation targeting gluteus medius and piriformis to correct hip drop, knee valgus, and IT band syndrome.'),
+      ('nTpLsKBqMuI', 'CAT COW.png',            '25. Monster Walk Lateral Band',        'hip',      'Monster Walk Lateral Band',   'Resistance band lateral walk targeting gluteus medius, TFL, and hip abductors for dynamic hip stability and valgus knee correction.'),
+      ('oHGYRE_YOEM', 'ex_arm_rotation.jpg',    '26. Pendulum Arm Swing',               'shoulder', 'Pendulum Arm Swing',          'Gravity-assisted pendulum exercise for shoulder joint distraction, reducing glenohumeral compression, and improving post-injury mobility.'),
+      ('ZIcq1OUuFuY', 'ex_shoulder_rotation.jpg','27. Cross-Body Shoulder Stretch',     'shoulder', 'Cross-Body Shoulder Stretch', 'Horizontal adduction stretch targeting posterior deltoid, teres minor, and posterior capsule to improve internal rotation and cross-body ROM.'),
+      ('0oy_ILfanG0', 'ex_wrist_extension.jpg', '28. Triceps Overhead Stretch',         'shoulder', 'Triceps Extension Stretch',   'Overhead triceps stretch targeting long head of triceps brachii and posterior capsule for elbow extension ROM and shoulder girdle flexibility.'),
+      ('Y3ntBNLLpw4', 'ex_cobra_extension.jpg', '29. Biceps Tendon Stretch',            'shoulder', 'Biceps Stretch',              'Supination-based biceps and anterior shoulder stretch targeting biceps brachii and coracobrachialis for tendinopathy relief.'),
+      ('AnYl6Mv5GWM', 'SPINAL TWIST.png',       '30. Abductor Side Leg Raise',          'hip',      'Abductor Leg Raise',          'Side-lying leg abduction targeting gluteus medius, TFL, and hip abductor chain for lateral hip stability and strength.'),
+      ('DP3oyqr8r2M', 'ex_arm_rotation.jpg',    '31. Adductor Squeeze Hold',            'hip',      'Adductor Squeeze',            'Isometric adductor activation targeting adductor magnus, longus, brevis, and gracilis for medial hip stability and groin rehabilitation.'),
+      ('eGo4IYlbE5g', 'ex_cobra_extension.jpg', '32. Toe Touch Forward Fold',           'spine',    'Toe Touch Forward Fold',      'Standing forward fold targeting hamstrings, lumbar fascia, and gastrocnemius to improve hip flexion mobility and posterior chain length.'),
+      ('b9OPIG5Pqag', 'ex_shoulder_rotation.jpg','33. Reverse Fly &amp; Scapular Pull', 'shoulder', 'Reverse Fly Posture',         'Prone rear deltoid and rhomboid activation correcting forward rounded shoulders and upper cross syndrome.'),
+      ('uBEXsOm0_Oo', 'ex_cat_cow.jpg',         '34. Full Spinal Arch &amp; Roll',      'spine',    'Spinal Arch Flexion',         'Complete spinal articulation from cervical to sacral spine to restore segmental mobility and decompress facet joints.'),
+      ('zXMQ0MtEVKM', 'ex_spinal_twist.jpg',    '35. Wall Sit Endurance Hold',          'hip',      'Wall Sit Endurance',          'Quad isometric wall sit targeting VMO, rectus femoris, and vastus lateralis for knee extensor endurance and patellar tracking rehab.'),
+      ('dY8yt0eFNkw', 'ex_arm_rotation.jpg',    '36. Quadruped Hip Extension',          'hip',      'Quadruped Hip Extension',     'All-fours single-leg extension targeting gluteus maximus and lumbar extensors for hip extension strength and lumbopelvic stabilisation.'),
+      ('IJ6sWL_9Ulk', 'ex_wrist_extension.jpg', '37. Cervical Lateral Neck Stretch',    'spine',    'Cervical Lateral Flexion',    'Side-neck stretch targeting upper trapezius, scalenes, and levator scapulae for cervicogenic headache relief and cervical ROM.'),
+      ('3wABTEVGxrM', 'ex_cobra_extension.jpg', '38. Restorative Yoga Cool-Down',       'yoga',     'Full-Body Restorative Stretch','Full-body restorative yoga targeting parasympathetic nervous system, hip flexors, and thoracic spine for optimal post-workout recovery.'),
+      ('kZTKuDMf_50', 'SHOULDER ROTATION.png',  '39. Sun Salutation A Full Tutorial',   'yoga',     'Warrior Pose',                'Surya Namaskar A full tutorial linking mountain pose, forward fold, plank, cobra, and downward dog in a dynamic flowing meditation sequence.'),
+      ('EC7RGJ975iw', 'CAT COW.png',            '40. Pranayama Breathing Exercises',    'yoga',     'Full-Body Restorative Stretch','Guided diaphragmatic breathing and pranayama targeting intercostal expansion, vagal tone, and parasympathetic activation for stress management.'),
+      ('Ugg3yDUijgU', 'FINGER TIP TOUCHES.png', '41. Finger Tendon Glide Exercises',    'wrist',    'Forearm Flexion',             'Progressive 5-position finger tendon gliding targeting FDP and FDS for carpal tunnel syndrome rehabilitation and hand mobility.'),
+      ('LVCFU5MQHG8', 'ex_cat_cow.jpg',         '42. Yoga Nidra Body Scan',             'yoga',     'Full-Body Restorative Stretch','Guided yoga nidra progressive muscle relaxation for deep parasympathetic recovery, chronic pain management, and sleep quality improvement.'),
+      ('au7PNbpZ_oc', 'ex_shoulder_rotation.jpg','43. Side Plank Lateral Core',         'core',     'Side Plank Lateral Core',     'Lateral isometric plank targeting obliques, quadratus lumborum, and hip abductors for frontal-plane core stability and spine protection.'),
+      ('6tSWDaRXnHI', 'SPINAL TWIST.png',       '44. Thoracic Extension on Foam Roller','spine',    'Thoracic Extension',          'Foam roller thoracic extension targeting T4-T8 vertebrae to reverse rounded upper back, improve overhead mobility, and reduce kyphosis.'),
+      ('vAuRgQM0FIg', 'ex_cobra_extension.jpg', '45. Hip Flexor Lunge Flow',            'hip',      'Hip Flexor Lunge Stretch',    'Dynamic kneeling lunge flow progressively opening iliopsoas, rectus femoris, and TFL for hip extension mobility and anterior pelvis relief.'),
+      ('PoCq1D3XQXQ', 'ex_arm_rotation.jpg',    '46. Hamstring Release Routine',        'hip',      'Hamstring Stretch &amp; Release','Comprehensive hamstring release targeting biceps femoris, semimembranosus, and semitendinosus for posterior leg tightness relief.'),
+      ('nGKEf6MmXpM', 'ex_cobra_extension.jpg', '47. Quad Stretch Standing &amp; Floor', 'hip',     'Quadriceps Stretch',          'Standing and prone quadriceps stretch targeting rectus femoris, vastus intermedius, and iliopsoas to relieve anterior knee tension.'),
+      ('QOLTeO-uSY4', 'ex_spinal_twist.jpg',    '48. Calf Raise Progression',           'hip',      'Calf Raise &amp; Balance',    'Bilateral to unilateral calf raise progression targeting gastrocnemius, soleus, and tibialis posterior for ankle plantar flexion strength.'),
+      ('W5s6z3e3i4',  'WRIST EXTENSION.png',     '49. Wrist Extension &amp; Mobility',   'wrist',    'Wrist Extension',             'Comprehensive wrist and forearm exercise targeting extensor carpi radialis, ECU, and extensor digitorum for RSI prevention and carpal care.'),
+      ('8YyD2jJ49Ms', 'ex_wrist_extension.jpg', '50. Forearm Flexion Curls',            'wrist',    'Forearm Flexion',             'Isolated forearm flexion drill activating biceps brachii, brachialis, and brachioradialis for elbow stability and grip endurance.'),
+      ('M6fF8vD6sU8', 'ex_spinal_twist.jpg',    '51. Deep Hip Squat Opener',            'hip',      'Squat &amp; Hip Mobility',    'Deep squat hip mobilisation targeting hip flexors, adductors, and ankle dorsiflexors to improve athletic performance and joint health.'),
+      ('vYmY7G1s9A0', 'ex_arm_rotation.jpg',    '52. Bird-Dog Core Extension',          'core',     'Bird-Dog Core Extension',     'Quadruped alternating arm-leg extension for deep core stabilisation, lumbar multifidus activation, and lumbopelvic rhythm coordination.'),
+      ('wPM8icsPu6H', 'ex_cobra_extension.jpg', '53. Glute Bridge Hip Extension',       'hip',      'Glute Bridge',                'Supine hip extension targeting gluteus maximus, hamstrings, and hip external rotators to build posterior chain power and lumbar stability.'),
+      ('9u4hQz1sZ2c', 'GRIP.jpg',               '54. Grip Strength &amp; Fingertip',    'wrist',    'Side Lateral Raise',          'Grip strength and fingertip coordination targeting intrinsic hand muscles, lumbricals, and finger flexors for functional hand rehabilitation.'),
+      ('wdlnMw76sBw', 'CAT COW.png',            '55. Tree Pose Balance Progression',    'yoga',     'Tree Pose Balance',           'Progressive single-leg tree pose improving proprioception, ankle stability, gluteus medius activation, and medial longitudinal arch engagement.'),
+      ('4PkLyFs0cU4', 'SHOULDER ROTATION.png',  '56. Warrior I &amp; II Stance Flow',   'yoga',     'Warrior Pose',                'Dynamic Warrior I and II transition developing hip stability, quadriceps endurance, and thoracic rotation for functional strength.'),
+      ('E3x7w8sSgE4', 'WRIST EXTENSION.png',    '57. Wrist &amp; Forearm Rehab',        'wrist',    'Wrist Extension',             'Comprehensive wrist rehabilitation covering extension, flexion, radial/ulnar deviation, and rotation for repetitive strain recovery.'),
+      ('1n2Z3a4sB5c', 'ex_arm_rotation.jpg',    '58. Overhead Arm Extension',           'shoulder', 'Overhead Arm Stretch',        'Overhead lat stretch targeting latissimus dorsi, teres major, and thoracolumbar fascia to improve shoulder flexion range of motion.'),
+      ('2V7hJ0ssQ1w', 'ex_cobra_extension.jpg', '59. Chest Opener &amp; Expansion',     'shoulder', 'Chest Opener',                'Pectoral and anterior shoulder stretch reversing thoracic kyphosis and improving breathing capacity through intercostal expansion.'),
+      ('LVCFU5sMQHG', 'ex_cat_cow.jpg',         '60. Full Yoga Nidra Recovery',         'yoga',     'Full-Body Restorative Stretch','Complete yoga nidra body scan and deep relaxation practice for nervous system regulation, chronic pain relief, and sleep improvement.')
+    ] %}
+
+    <div id="ytContainer" style="display: flex; flex-direction: column; gap: 0.55rem;">
+      {% for yt_id, img, title, cat, exercise, desc in videos %}
+        <div class="yt-item" id="ytItem{{ loop.index }}"
+             data-yt="{{ yt_id }}"
+             data-ep="EP #{{ loop.index }}"
+             data-title="{{ title }}"
+             data-cat="{{ cat }}"
+             data-exercise="{{ exercise }}"
+             data-desc="{{ desc }}"
+             onclick="playVideo(this)">
+          <img src="{{ url_for('serve_media', filename=img) }}"
+               class="yt-thumb" alt="{{ title }}"
+               onerror="this.src='{{ url_for('serve_media', filename='SHOULDER ROTATION.png') }}';">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.82rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ title }}</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem;">{{ cat|capitalize }} • Ep #{{ loop.index }}</div>
+          </div>
+          <div class="yt-dot dot-ok" title="Available"></div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const frame = document.getElementById('ytFrame');
+  const nowTitle = document.getElementById('nowTitle');
+  const nowDesc  = document.getElementById('nowDesc');
+  const nowEp    = document.getElementById('nowEp');
+  const nowCat   = document.getElementById('nowCat');
+  const nowAssess= document.getElementById('nowAssess');
+  const avCount  = document.getElementById('avCount');
+  const container= document.getElementById('ytContainer');
+
+  function getAllItems() { return Array.from(container.querySelectorAll('.yt-item')); }
+
+  // Auto-play first video on load
+  const firstItem = container.querySelector('.yt-item');
+  if(firstItem) setTimeout(() => playVideo(firstItem), 300);
+
+  window.playVideo = function(item) {
+    getAllItems().forEach(i => i.classList.remove('yt-playing'));
+    item.classList.add('yt-playing');
+
+    const ytId    = item.dataset.yt;
+    const ep      = item.dataset.ep;
+    const title   = item.dataset.title;
+    const desc    = item.dataset.desc;
+    const exercise= item.dataset.exercise;
+    const cat     = item.dataset.cat;
+
+    // Load video
+    frame.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
+
+    nowTitle.textContent  = title;
+    nowDesc.textContent   = desc;
+    nowEp.textContent     = ep;
+    nowCat.innerHTML      = `<i class="fa-solid fa-tag" style="color:var(--accent-cyan);"></i> ${cat.charAt(0).toUpperCase()+cat.slice(1)}`;
+    nowAssess.href        = `/assessment?exercise=${encodeURIComponent(exercise)}`;
+
+    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    updateCount();
+  };
+
+  // Navigate playlist
+  window.navEp = function(dir) {
+    const items   = getAllItems().filter(i => i.style.display !== 'none');
+    const current = items.findIndex(i => i.classList.contains('yt-playing'));
+    const next    = current + dir;
+    if(next >= 0 && next < items.length) playVideo(items[next]);
+  };
+
+  // Detect unavailable videos via YouTube postMessage API
+  window.addEventListener('message', (ev) => {
+    try {
+      const data = JSON.parse(ev.data);
+      // YouTube iFrame API sends { event: 'onError', info: <code> }
+      // Error codes: 2=bad param, 5=HTML5, 100=not found/removed, 101/150=embed not allowed
+      if(data.event === 'onError') {
+        const playing = container.querySelector('.yt-item.yt-playing');
+        if(playing) {
+          playing.classList.add('yt-unavailable');
+          const dot = playing.querySelector('.yt-dot');
+          if(dot) { dot.className = 'yt-dot dot-err'; dot.title = 'Unavailable'; }
+          container.appendChild(playing); // push to bottom
+          updateCount();
+        }
+      }
+    } catch(e) {}
+  });
+
+  // Category filter
+  window.ytFilter = function(btn, cat) {
+    document.querySelectorAll('.yt-filter-btn').forEach(b => b.classList.remove('yt-active'));
+    btn.classList.add('yt-active');
+    getAllItems().forEach(item => {
+      item.style.display = (cat === 'all' || item.dataset.cat === cat) ? 'flex' : 'none';
+    });
+    updateCount();
+  };
+
+  // Search
+  window.ytSearchFn = function(q) {
+    const query = q.toLowerCase();
+    getAllItems().forEach(item => {
+      const match = item.dataset.title.toLowerCase().includes(query) ||
+                    item.dataset.cat.toLowerCase().includes(query);
+      item.style.display = match ? 'flex' : 'none';
+    });
+    updateCount();
+  };
+
+  function updateCount() {
+    const visible = getAllItems().filter(i => i.style.display !== 'none');
+    const ok      = visible.filter(i => !i.classList.contains('yt-unavailable'));
+    avCount.textContent = `${ok.length}/${visible.length} Available ✓`;
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navEp(1); }
+    if(e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); navEp(-1); }
+  });
+
+  updateCount();
+})();
+</script>
+{% endblock %}

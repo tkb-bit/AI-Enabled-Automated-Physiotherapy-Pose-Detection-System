@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Analytics — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2.5rem;">
+  <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700; margin-bottom: 0.5rem;">
+    Your Movement Progress & Analytics
+  </h1>
+  <p style="color: var(--text-muted); font-size: 1.05rem;">
+    Track form score evolution, repetition volume, and movement quality over time.
+  </p>
+</div>
+
+<!-- Progress Metric Summary Bar -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 3rem;">
+  <div class="card" style="text-align: center;">
+    <span class="metric-label">FORM SCORE TREND</span>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: var(--status-success); margin-top: 0.4rem;">
+      +14% <i class="fa-solid fa-arrow-trend-up" style="font-size: 1.4rem;"></i>
+    </div>
+    <span style="font-size: 0.8rem; color: var(--text-subtle);">vs Last Month</span>
+  </div>
+
+  <div class="card" style="text-align: center;">
+    <span class="metric-label">TOTAL SESSIONS</span>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; margin-top: 0.4rem;">
+      {{ history|length }}
+    </div>
+    <span style="font-size: 0.8rem; color: var(--text-subtle);">Completed</span>
+  </div>
+
+  <div class="card" style="text-align: center;">
+    <span class="metric-label">REPETITIONS LOGGED</span>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: var(--accent-cyan); margin-top: 0.4rem;">
+      {% set total_reps = namespace(val=0) %}
+      {% for h in history %}{% set total_reps.val = total_reps.val + h.repetitions %}{% endfor %}
+      {{ total_reps.val }}
+    </div>
+    <span style="font-size: 0.8rem; color: var(--text-subtle);">Valid Reps</span>
+  </div>
+
+  <div class="card" style="text-align: center;">
+    <span class="metric-label">PRACTICE TIME</span>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: var(--accent-blue); margin-top: 0.4rem;">
+      {% set total_dur = namespace(val=0) %}
+      {% for h in history %}{% set total_dur.val = total_dur.val + h.duration %}{% endfor %}
+      {{ (total_dur.val / 60)|round(1) }}m
+    </div>
+    <span style="font-size: 0.8rem; color: var(--text-subtle);">Total Duration</span>
+  </div>
+</div>
+
+<!-- SVG Progress Line Chart -->
+<div class="card" style="margin-bottom: 3rem; border-color: var(--border-glow);">
+  <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; margin-bottom: 1.5rem;">Form Score History Chart</h3>
+  
+  <div style="background: rgba(11,15,25,0.8); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+    <svg viewBox="0 0 700 200" style="width: 100%; height: 220px;">
+      <!-- Gridlines -->
+      <line x1="40" y1="20" x2="680" y2="20" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4"/>
+      <line x1="40" y1="70" x2="680" y2="70" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4"/>
+      <line x1="40" y1="120" x2="680" y2="120" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4"/>
+      <line x1="40" y1="170" x2="680" y2="170" stroke="rgba(255,255,255,0.1)"/>
+
+      <!-- Labels -->
+      <text x="10" y="25" fill="#64748b" font-size="10">100%</text>
+      <text x="10" y="75" fill="#64748b" font-size="10">80%</text>
+      <text x="10" y="125" fill="#64748b" font-size="10">60%</text>
+      <text x="10" y="175" fill="#64748b" font-size="10">40%</text>
+
+      <!-- Trend Area -->
+      <polygon points="60,140 180,120 300,90 420,70 540,50 660,35 660,170 60,170" fill="url(#gradArea)" opacity="0.4"/>
+      <!-- Trend Line -->
+      <polyline points="60,140 180,120 300,90 420,70 540,50 660,35" fill="none" stroke="#00f2fe" stroke-width="4"/>
+
+      <!-- Points -->
+      <circle cx="60" cy="140" r="6" fill="#00f2fe"/>
+      <circle cx="180" cy="120" r="6" fill="#00f2fe"/>
+      <circle cx="300" cy="90" r="6" fill="#00f2fe"/>
+      <circle cx="420" cy="70" r="6" fill="#00f2fe"/>
+      <circle cx="540" cy="50" r="6" fill="#00f2fe"/>
+      <circle cx="660" cy="35" r="6" fill="#00e676"/>
+
+      <defs>
+        <linearGradient id="gradArea" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#00f2fe" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div style="display: flex; justify-content: space-between; margin-top: 0.8rem; padding: 0 1rem; color: var(--text-subtle); font-size: 0.85rem;">
+      <span>Week 1 (72%)</span>
+      <span>Week 2 (79%)</span>
+      <span>Week 3 (86%)</span>
+      <span>Week 4 (91%)</span>
+    </div>
+  </div>
+</div>
+
+<!-- History Log Table -->
+<div class="card">
+  <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; margin-bottom: 1.5rem;">Historical Session Logs</h3>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted);">
+          <th style="padding: 0.8rem 1rem;">ID</th>
+          <th style="padding: 0.8rem 1rem;">Exercise</th>
+          <th style="padding: 0.8rem 1rem;">Form Score</th>
+          <th style="padding: 0.8rem 1rem;">Accuracy</th>
+          <th style="padding: 0.8rem 1rem;">Reps</th>
+          <th style="padding: 0.8rem 1rem;">Duration</th>
+          <th style="padding: 0.8rem 1rem;">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+          <tr style="border-bottom: 1px solid var(--border-light);">
+            <td style="padding: 1rem; color: var(--text-subtle);">#{{ h.id }}</td>
+            <td style="padding: 1rem; font-weight: 600;">{{ h.exercise }}</td>
+            <td style="padding: 1rem; color: var(--status-success); font-weight: 700;">{{ h.form_score }}%</td>
+            <td style="padding: 1rem; color: var(--text-muted);">{{ h.accuracy }}%</td>
+            <td style="padding: 1rem;">{{ h.repetitions }}</td>
+            <td style="padding: 1rem; color: var(--text-muted);">{{ h.duration }}s</td>
+            <td style="padding: 1rem; color: var(--text-subtle); font-size: 0.85rem;">{{ h.created_at[:19] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

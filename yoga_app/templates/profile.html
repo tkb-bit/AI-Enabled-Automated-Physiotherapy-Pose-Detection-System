@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile — {{ user.fullname }} — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto;">
+  <!-- Profile Header Card -->
+  <div class="card" style="margin-bottom: 2rem; border-color: var(--border-glow); display: flex; flex-direction: row; align-items: center; gap: 2rem;">
+    <div class="brand-icon" style="width: 80px; height: 80px; font-size: 2.5rem; border-radius: 50%;">
+      <i class="fa-solid fa-user"></i>
+    </div>
+
+    <div style="flex: 1;">
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 1.2;">
+        {{ user.fullname }}
+      </h1>
+      <p style="color: var(--accent-cyan); font-weight: 600;">@{{ user.username }} • Member since {{ user.created_at[:10] }}</p>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem;">{{ user.email }}</p>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="btn btn-danger">
+      <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+    </a>
+  </div>
+
+  <!-- Profile Stats Grid -->
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="card" style="text-align: center;">
+      <span class="metric-label">TOTAL SESSIONS</span>
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; margin-top: 0.4rem;">
+        {{ stats.total_sessions if stats else 0 }}
+      </div>
+    </div>
+
+    <div class="card" style="text-align: center;">
+      <span class="metric-label">AVERAGE FORM SCORE</span>
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2.2rem; font-weight: 700; color: var(--status-success); margin-top: 0.4rem;">
+        {{ stats.avg_score if stats and stats.avg_score else 0 }}%
+      </div>
+    </div>
+
+    <div class="card" style="text-align: center;">
+      <span class="metric-label">FAVORITE EXERCISE</span>
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan); margin-top: 0.8rem;">
+        Shoulder Rotation
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Details Card -->
+  <div class="card">
+    <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; margin-bottom: 1.2rem;">Account Details</h3>
+    
+    <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.95rem;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: 0.8rem;">
+        <span style="color: var(--text-muted);">Full Name</span>
+        <span style="font-weight: 600;">{{ user.fullname }}</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: 0.8rem;">
+        <span style="color: var(--text-muted);">Username</span>
+        <span style="font-weight: 600;">{{ user.username }}</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: 0.8rem;">
+        <span style="color: var(--text-muted);">Email Address</span>
+        <span style="font-weight: 600;">{{ user.email }}</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding-bottom: 0.8rem;">
+        <span style="color: var(--text-muted);">Security Password</span>
+        <span style="color: var(--text-subtle);">•••••••• (Hashed with Werkzeug)</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

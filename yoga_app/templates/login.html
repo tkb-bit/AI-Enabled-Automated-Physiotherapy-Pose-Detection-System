@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — Yoga Studio AI{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 3rem auto; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 2.5rem; box-shadow: var(--shadow-sm);">
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.5rem;">
+      <i class="fa-solid fa-user-lock"></i>
+    </div>
+    <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem;">Welcome Back</h2>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Sign in to access your AI Physiotherapy sessions</p>
+  </div>
+
+  <form action="{{ url_for('login') }}" method="POST" style="display: flex; flex-direction: column; gap: 1.2rem;">
+    <div>
+      <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">Username</label>
+      <input type="text" name="username" required placeholder="Enter your username (e.g. demo)" 
+             style="width: 100%; padding: 0.8rem 1rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-light); border-radius: var(--radius-md); color: #fff; font-size: 0.95rem;">
+    </div>
+
+    <div>
+      <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">Password</label>
+      <input type="password" name="password" required placeholder="••••••••" 
+             style="width: 100%; padding: 0.8rem 1rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-light); border-radius: var(--radius-md); color: #fff; font-size: 0.95rem;">
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem; padding: 0.85rem;">
+      <i class="fa-solid fa-right-to-bracket"></i> Sign In
+    </button>
+  </form>
+
+  <div style="text-align: center; margin-top: 1.8rem; font-size: 0.9rem; color: var(--text-muted);">
+    Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--accent-cyan); font-weight: 600;">Create One</a>
+  </div>
+
+  <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--border-light); text-align: center; font-size: 0.85rem; color: var(--text-subtle);">
+    <i class="fa-solid fa-circle-info"></i> Demo Credentials: username <code>demo</code> / password <code>Demo123!</code>
+  </div>
+</div>
+{% endblock %}
