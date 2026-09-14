@@ -37,7 +37,7 @@
     <div class="video-wrapper">
       <video id="clientWebcam" autoplay playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
       <canvas id="outputCanvas" class="video-feed" style="display: none; width: 100%; height: 100%; object-fit: cover;"></canvas>
-      <img src="{{ url_for('video_feed') }}" alt="AI Camera Feed" class="video-feed" id="liveVideoFeed">
+      <img data-src="{{ url_for('video_feed') }}" alt="AI Camera Feed" class="video-feed" id="liveVideoFeed" style="display: none;">
       
       <!-- Top HUD Overlay -->
       <div class="hud-overlay">

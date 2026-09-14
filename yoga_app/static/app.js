@@ -186,7 +186,10 @@ function initAssessmentEngine() {
       .catch(err => {
         console.warn('[!] Client camera not allowed or unavailable. Using server fallback feed:', err);
         if (cameraModeText) cameraModeText.textContent = 'HOSTED DEMO FEED';
-        if (serverVideoFeed) serverVideoFeed.style.display = 'block';
+        if (serverVideoFeed) {
+          if (serverVideoFeed.dataset.src) serverVideoFeed.src = serverVideoFeed.dataset.src;
+          serverVideoFeed.style.display = 'block';
+        }
         if (outputCanvas) outputCanvas.style.display = 'none';
       });
   }
