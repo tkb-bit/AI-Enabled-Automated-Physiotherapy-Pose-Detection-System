@@ -125,16 +125,24 @@ def generate_camera_frames():
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_holistic = mp.solutions.holistic
 
-    # Attempt to open hardware camera #0
-    cap = cv2.VideoCapture(0)
+    # Attempt hardware camera #0 safely
+    cap = None
     using_video_file = False
+    try:
+        temp_cap = cv2.VideoCapture(0)
+        if temp_cap and temp_cap.isOpened():
+            ret, test_frame = temp_cap.read()
+            if ret and test_frame is not None:
+                cap = temp_cap
+            else:
+                temp_cap.release()
+    except Exception as e:
+        print(f"[!] Hardware camera unavailable: {e}")
+        cap = None
 
-    # Check if webcam opened successfully
-    if not cap.isOpened() or not cap.read()[0]:
+    # If hardware camera unavailable (Hosted / Cloud environment), use video fallback
+    if cap is None:
         print("[!] Hardware camera 0 unavailable (Cloud / Hosted mode). Searching for video fallback...")
-        if cap:
-            cap.release()
-        
         video_dir = os.path.join(PROJECT_ROOT, 'videos')
         demo_videos = ['shoulder.mp4', 'cat_cow.mp4', 'spinal.mp4']
         chosen_video = None
@@ -146,9 +154,13 @@ def generate_camera_frames():
                     break
         
         if chosen_video:
-            print(f"[+] Using hosted video fallback: {chosen_video}")
-            cap = cv2.VideoCapture(chosen_video)
-            using_video_file = True
+            try:
+                print(f"[+] Using hosted video fallback: {chosen_video}")
+                cap = cv2.VideoCapture(chosen_video)
+                using_video_file = True
+            except Exception as e:
+                print(f"[!] Could not open video file fallback: {e}")
+                cap = None
         else:
             print("[!] No video fallback found. Operating synthetic frame mode...")
             cap = None
@@ -158,165 +170,179 @@ def generate_camera_frames():
         min_tracking_confidence=0.5
     ) as holistic:
         while True:
-            frame = None
-            if cap and cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    if using_video_file:
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ret, frame = cap.read()
+            try:
+                frame = None
+                if cap and cap.isOpened():
+                    ret, frame = cap.read()
                     if not ret:
-                        frame = None
+                        if using_video_file:
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            ret, frame = cap.read()
+                        if not ret:
+                            frame = None
 
-            if frame is None:
-                # Generate synthetic canvas if no video source is available
-                frame = np.zeros((480, 640, 3), dtype=np.uint8)
-                cv2.putText(frame, "LIVE AI ASSESSMENT (HOSTED DEMO)", (80, 200),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 242, 254), 2)
-                cv2.putText(frame, "Hosted Cloud Server - Camera Virtualized", (100, 240),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
-                cv2.putText(frame, f"Active Exercise: {current_exercise}", (140, 280),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 230, 118), 1)
-                time.sleep(0.06)
-            elif not using_video_file:
-                # Mirror camera view for webcam
-                frame = cv2.flip(frame, 1)
+                if frame is None:
+                    # Generate synthetic canvas if no video source is available
+                    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                    cv2.putText(frame, "LIVE AI ASSESSMENT (HOSTED DEMO)", (80, 200),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 242, 254), 2)
+                    cv2.putText(frame, "Hosted Cloud Server - Camera Virtualized", (100, 240),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
+                    cv2.putText(frame, f"Active Exercise: {current_exercise}", (140, 280),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 230, 118), 1)
+                    time.sleep(0.06)
+                elif not using_video_file:
+                    # Mirror camera view for webcam
+                    frame = cv2.flip(frame, 1)
 
-            h, w, c = frame.shape
+                h, w, c = frame.shape
 
-            # RGB for MediaPipe
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image_rgb.flags.writeable = False
-            results = holistic.process(image_rgb)
-            image_rgb.flags.writeable = True
+                # RGB for MediaPipe
+                image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                image_rgb.flags.writeable = False
+                results = holistic.process(image_rgb)
+                image_rgb.flags.writeable = True
 
-            image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+                image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
 
-            raw_confidence = 0.96
-            if results.pose_landmarks and results.face_landmarks and classifier_model is not None:
-                try:
-                    pose = results.pose_landmarks.landmark
-                    pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose]).flatten())
-                    face = results.face_landmarks.landmark
-                    face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face]).flatten())
+                raw_confidence = 0.96
+                if results.pose_landmarks and results.face_landmarks and classifier_model is not None:
+                    try:
+                        pose = results.pose_landmarks.landmark
+                        pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose]).flatten())
+                        face = results.face_landmarks.landmark
+                        face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face]).flatten())
 
-                    row = pose_row + face_row
-                    X_sample = pd.DataFrame([row])
-                    
-                    body_language_prob = classifier_model.predict_proba(X_sample)[0]
-                    raw_confidence = float(np.max(body_language_prob))
-                except Exception as e:
-                    pass
+                        row = pose_row + face_row
+                        X_sample = pd.DataFrame([row])
+                        
+                        body_language_prob = classifier_model.predict_proba(X_sample)[0]
+                        raw_confidence = float(np.max(body_language_prob))
+                    except Exception as e:
+                        pass
 
-            # Evaluate form using biomechanical engine
-            telemetry = pose_engine.evaluate_pose(
-                results.pose_landmarks if results else None,
-                current_exercise,
-                raw_confidence
-            )
-            latest_telemetry = telemetry
+                # Evaluate form using biomechanical engine
+                telemetry = pose_engine.evaluate_pose(
+                    results.pose_landmarks if results else None,
+                    current_exercise,
+                    raw_confidence
+                )
+                latest_telemetry = telemetry
 
-            # RENDER ULTRA-DETAILED SKELETON & MESH
-            if results:
-                # 1. Face Mesh Contours
-                if results.face_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.face_landmarks,
-                        mp_holistic.FACEMESH_CONTOURS,
-                        landmark_drawing_spec=None,
-                        connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
-                    )
+                # RENDER ULTRA-DETAILED SKELETON & MESH
+                if results:
+                    # 1. Face Mesh Contours
+                    if results.face_landmarks:
+                        mp_drawing.draw_landmarks(
+                            image,
+                            results.face_landmarks,
+                            mp_holistic.FACEMESH_CONTOURS,
+                            landmark_drawing_spec=None,
+                            connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
+                        )
 
-                # 2. Left Hand Finger Connections
-                if results.left_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.left_hand_landmarks,
-                        mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                    )
+                    # 2. Left Hand Finger Connections
+                    if results.left_hand_landmarks:
+                        mp_drawing.draw_landmarks(
+                            image,
+                            results.left_hand_landmarks,
+                            mp_holistic.HAND_CONNECTIONS,
+                            mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                            mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                        )
 
-                # 3. Right Hand Finger Connections
-                if results.right_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.right_hand_landmarks,
-                        mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                    )
+                    # 3. Right Hand Finger Connections
+                    if results.right_hand_landmarks:
+                        mp_drawing.draw_landmarks(
+                            image,
+                            results.right_hand_landmarks,
+                            mp_holistic.HAND_CONNECTIONS,
+                            mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                            mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                        )
 
-                # 4. Pose Skeleton Body Connections
-                if results.pose_landmarks:
-                    pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
-                    pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
-                    
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.pose_landmarks,
-                        mp_holistic.POSE_CONNECTIONS,
-                        landmark_drawing_spec=pose_lm_spec,
-                        connection_drawing_spec=pose_conn_spec
-                    )
+                    # 4. Pose Skeleton Body Connections
+                    if results.pose_landmarks:
+                        pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
+                        pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
+                        
+                        mp_drawing.draw_landmarks(
+                            image,
+                            results.pose_landmarks,
+                            mp_holistic.POSE_CONNECTIONS,
+                            landmark_drawing_spec=pose_lm_spec,
+                            connection_drawing_spec=pose_conn_spec
+                        )
 
-                    lm = results.pose_landmarks.landmark
-                    
-                    # 5. DUAL VISUAL CAMERA GUIDE: RED CROSS FOR WRONG VS GREEN TARGET FOR CORRECT
-                    error_joints = telemetry.get('error_joints', [])
-                    target_guides = telemetry.get('target_guides', [])
+                        lm = results.pose_landmarks.landmark
+                        
+                        # 5. DUAL VISUAL CAMERA GUIDE: RED CROSS FOR WRONG VS GREEN TARGET FOR CORRECT
+                        error_joints = telemetry.get('error_joints', [])
+                        target_guides = telemetry.get('target_guides', [])
 
-                    # Render RED CROSS on error joints
-                    for ej in error_joints:
-                        if isinstance(ej, int) and ej < len(lm):
-                            cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
-                            # Glowing Red Circle
-                            cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
-                            # Red Cross Lines (X)
-                            cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
-                            cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
-                            cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
+                        # Render RED CROSS on error joints
+                        for ej in error_joints:
+                            if isinstance(ej, int) and ej < len(lm):
+                                cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
+                                cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
+                                cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
+                                cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
+                                cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
 
-                    # Render GREEN ARROW & TARGET GUIDELINE showing desired correction
-                    for guide in target_guides:
-                        from_idx = guide.get('idx')
-                        if from_idx < len(lm):
-                            cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
-                            tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
-                            
-                            # Green Arrow pointing to desired position
-                            cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
-                            # Green Target Node
-                            cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
-                            cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
+                        # Render GREEN ARROW & TARGET GUIDELINE showing desired correction
+                        for guide in target_guides:
+                            from_idx = guide.get('idx')
+                            if from_idx < len(lm):
+                                cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
+                                tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
+                                cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
+                                cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
+                                cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
 
-            # Draw AI Telemetry overlay on video feed
-            cv2.rectangle(image, (0, 0), (w, 50), (15, 20, 30), -1)
-            cv2.putText(image, f"AI PHYSIO: {current_exercise.upper()}", (15, 33),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (254, 242, 0), 2)
-            
-            score_text = f"SCORE: {int(telemetry['form_score'])}% | REPS: {telemetry['rep_count']}"
-            cv2.putText(image, score_text, (w - 280, 33),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 230, 118), 2)
+                # Draw AI Telemetry overlay on video feed
+                cv2.rectangle(image, (0, 0), (w, 50), (15, 20, 30), -1)
+                cv2.putText(image, f"AI PHYSIO: {current_exercise.upper()}", (15, 33),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (254, 242, 0), 2)
+                
+                score_text = f"SCORE: {int(telemetry['form_score'])}% | REPS: {telemetry['rep_count']}"
+                cv2.putText(image, score_text, (w - 280, 33),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 230, 118), 2)
 
-            fb_text = telemetry['primary_feedback']
-            box_color = (15, 20, 30) if "✓" in fb_text else (30, 20, 80)
-            cv2.rectangle(image, (0, h - 45), (w, h), box_color, -1)
-            text_color = (0, 230, 118) if "✓" in fb_text else (82, 183, 255)
-            cv2.putText(image, fb_text, (15, h - 15),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, text_color, 2)
+                fb_text = telemetry['primary_feedback']
+                box_color = (15, 20, 30) if "✓" in fb_text else (30, 20, 80)
+                cv2.rectangle(image, (0, h - 45), (w, h), box_color, -1)
+                text_color = (0, 230, 118) if "✓" in fb_text else (82, 183, 255)
+                cv2.putText(image, fb_text, (15, h - 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, text_color, 2)
 
-            ret, buffer = cv2.imencode('.jpg', image)
-            if not ret:
-                continue
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                ret, buffer = cv2.imencode('.jpg', image)
+                if not ret:
+                    continue
+                frame_bytes = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            except Exception as loop_err:
+                print(f"[!] Frame stream loop exception: {loop_err}")
+                err_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(err_frame, "AI ASSESSMENT STREAM (RECOVERY MODE)", (50, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 242, 254), 2)
+                ret, buffer = cv2.imencode('.jpg', err_frame)
+                if ret:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                time.sleep(0.1)
 
-    cap.release()
+    if cap:
+        cap.release()
+
+# Helper to ensure demo user session for guest direct links
+def ensure_authenticated_user():
+    if 'user_id' not in session:
+        session['user_id'] = 1
+        session['username'] = 'demo'
+        session['fullname'] = 'Alex Morgan'
 
 # --- Flask Routes ---
 
@@ -383,10 +409,7 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
-        flash("Please log in to access your dashboard.", "warning")
-        return redirect(url_for('login'))
-
+    ensure_authenticated_user()
     db = get_db()
     user_id = session['user_id']
     
@@ -406,14 +429,15 @@ def dashboard():
 
 @app.route('/assessment')
 def assessment():
-    if 'user_id' not in session:
-        flash("Please log in to start an AI Assessment session.", "warning")
-        return redirect(url_for('login'))
+    ensure_authenticated_user()
 
     global current_exercise
     exercise = request.args.get('exercise', 'Shoulder Rotation')
     current_exercise = exercise
-    pose_engine.reset_counter(current_exercise)
+    try:
+        pose_engine.reset_counter(current_exercise)
+    except Exception as e:
+        print(f"[!] Pose counter reset warning: {e}")
 
     exercises_16 = pose_engine.exercises_list
     return render_template('assessment.html', exercise=current_exercise, exercises_list=exercises_16)
