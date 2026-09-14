@@ -125,22 +125,63 @@ def generate_camera_frames():
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_holistic = mp.solutions.holistic
 
+    # Attempt to open hardware camera #0
     cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("[!] Camera unavailable.")
-        return
+    using_video_file = False
+
+    # Check if webcam opened successfully
+    if not cap.isOpened() or not cap.read()[0]:
+        print("[!] Hardware camera 0 unavailable (Cloud / Hosted mode). Searching for video fallback...")
+        if cap:
+            cap.release()
+        
+        video_dir = os.path.join(PROJECT_ROOT, 'videos')
+        demo_videos = ['shoulder.mp4', 'cat_cow.mp4', 'spinal.mp4']
+        chosen_video = None
+        if os.path.exists(video_dir):
+            for v in demo_videos:
+                v_path = os.path.join(video_dir, v)
+                if os.path.exists(v_path):
+                    chosen_video = v_path
+                    break
+        
+        if chosen_video:
+            print(f"[+] Using hosted video fallback: {chosen_video}")
+            cap = cv2.VideoCapture(chosen_video)
+            using_video_file = True
+        else:
+            print("[!] No video fallback found. Operating synthetic frame mode...")
+            cap = None
 
     with mp_holistic.Holistic(
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5
     ) as holistic:
         while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+            frame = None
+            if cap and cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    if using_video_file:
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        ret, frame = cap.read()
+                    if not ret:
+                        frame = None
 
-            # Mirror camera view
-            frame = cv2.flip(frame, 1)
+            if frame is None:
+                # Generate synthetic canvas if no video source is available
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(frame, "LIVE AI ASSESSMENT (HOSTED DEMO)", (80, 200),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 242, 254), 2)
+                cv2.putText(frame, "Hosted Cloud Server - Camera Virtualized", (100, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1)
+                cv2.putText(frame, f"Active Exercise: {current_exercise}", (140, 280),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 230, 118), 1)
+                time.sleep(0.06)
+            elif not using_video_file:
+                # Mirror camera view for webcam
+                frame = cv2.flip(frame, 1)
+
             h, w, c = frame.shape
 
             # RGB for MediaPipe
