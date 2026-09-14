@@ -280,17 +280,7 @@ def generate_camera_frames():
                     )
 
                 if pose_landmarks:
-                    pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
-                    pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
-                    
-                    mp_drawing.draw_landmarks(
-                        image,
-                        pose_landmarks,
-                        mp_holistic.POSE_CONNECTIONS,
-                        landmark_drawing_spec=pose_lm_spec,
-                        connection_drawing_spec=pose_conn_spec
-                    )
-
+                    draw_custom_skeleton(image, pose_landmarks, telemetry, w, h)
                     lm = pose_landmarks.landmark
                     
                     # 5. DUAL VISUAL CAMERA GUIDE: RED CROSS FOR WRONG VS GREEN TARGET FOR CORRECT
@@ -508,6 +498,36 @@ def get_pose_detector():
             print(f"[!] Error initializing MediaPipe Pose fallback: {e}")
     return global_pose
 
+def draw_custom_skeleton(image, pose_landmarks, telemetry, w, h):
+    if not pose_landmarks or not hasattr(pose_landmarks, 'landmark'):
+        return
+
+    lm = pose_landmarks.landmark
+    
+    connections = [
+        (0, 1), (1, 2), (2, 3), (3, 7), (0, 4), (4, 5), (5, 6), (6, 8), (9, 10),
+        (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
+        (15, 17), (15, 19), (15, 21), (16, 18), (16, 20), (16, 22),
+        (11, 23), (12, 24), (23, 24),
+        (23, 25), (25, 27), (24, 26), (26, 28),
+        (27, 29), (27, 31), (28, 30), (28, 32)
+    ]
+
+    for p1_idx, p2_idx in connections:
+        if p1_idx < len(lm) and p2_idx < len(lm):
+            p1, p2 = lm[p1_idx], lm[p2_idx]
+            if getattr(p1, 'visibility', 1.0) >= 0.1 and getattr(p2, 'visibility', 1.0) >= 0.1:
+                x1, y1 = int(p1.x * w), int(p1.y * h)
+                x2, y2 = int(p2.x * w), int(p2.y * h)
+                cv2.line(image, (x1, y1), (x2, y2), (0, 242, 254), 4, cv2.LINE_AA)
+                cv2.line(image, (x1, y1), (x2, y2), (255, 255, 255), 2, cv2.LINE_AA)
+
+    for i, p in enumerate(lm):
+        if getattr(p, 'visibility', 1.0) >= 0.1:
+            cx, cy = int(p.x * w), int(p.y * h)
+            cv2.circle(image, (cx, cy), 7, (0, 230, 118), -1, cv2.LINE_AA)
+            cv2.circle(image, (cx, cy), 3, (255, 255, 255), -1, cv2.LINE_AA)
+
 import base64
 
 @app.route('/process_frame', methods=['POST'])
@@ -613,16 +633,7 @@ def process_frame():
             )
 
         if pose_landmarks:
-            pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
-            pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
-            
-            mp_drawing.draw_landmarks(
-                image,
-                pose_landmarks,
-                mp_holistic.POSE_CONNECTIONS,
-                landmark_drawing_spec=pose_lm_spec,
-                connection_drawing_spec=pose_conn_spec
-            )
+            draw_custom_skeleton(image, pose_landmarks, telemetry, w, h)
 
             lm = pose_landmarks.landmark
             error_joints = telemetry.get('error_joints', [])
