@@ -468,6 +468,10 @@ def download_paper():
         return send_file(paper_path, as_attachment=True, download_name='IEEE_Research_Paper_AI_Physiotherapy.html')
     return "IEEE Research Paper file not found", 404
 
+@app.route('/beacon', methods=['GET', 'POST'])
+def beacon():
+    return ('', 204)
+
 @app.route('/rehabilitation')
 def rehabilitation():
     return render_template('rehabilitation.html')
