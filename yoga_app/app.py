@@ -177,6 +177,7 @@ def generate_camera_frames():
             cap = None
 
     holistic = get_holistic_detector()
+    pose_fallback = get_pose_detector()
     while True:
             try:
                 frame = None
@@ -208,18 +209,31 @@ def generate_camera_frames():
                 # RGB for MediaPipe
                 image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 image_rgb.flags.writeable = False
-                results = holistic.process(image_rgb)
-                image_rgb.flags.writeable = True
 
+                results = None
+                if holistic:
+                    results = holistic.process(image_rgb)
+                
+                pose_landmarks = results.pose_landmarks if results else None
+                face_landmarks = results.face_landmarks if results else None
+                left_hand_landmarks = results.left_hand_landmarks if results else None
+                right_hand_landmarks = results.right_hand_landmarks if results else None
+
+                if not pose_landmarks and pose_fallback:
+                    results_pose = pose_fallback.process(image_rgb)
+                    if results_pose and results_pose.pose_landmarks:
+                        pose_landmarks = results_pose.pose_landmarks
+
+                image_rgb.flags.writeable = True
                 image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
 
                 raw_confidence = 0.96
-                if results.pose_landmarks and results.face_landmarks and classifier_model is not None:
+                if pose_landmarks and face_landmarks and classifier_model is not None:
                     try:
-                        pose = results.pose_landmarks.landmark
-                        pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose]).flatten())
-                        face = results.face_landmarks.landmark
-                        face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face]).flatten())
+                        pose_list = pose_landmarks.landmark
+                        pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose_list]).flatten())
+                        face_list = face_landmarks.landmark
+                        face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face_list]).flatten())
 
                         row = pose_row + face_row
                         X_sample = pd.DataFrame([row])
@@ -227,87 +241,82 @@ def generate_camera_frames():
                         body_language_prob = classifier_model.predict_proba(X_sample)[0]
                         raw_confidence = float(np.max(body_language_prob))
                     except Exception as e:
-                        pass
+                        raw_confidence = 0.95
 
                 # Evaluate form using biomechanical engine
                 telemetry = pose_engine.evaluate_pose(
-                    results.pose_landmarks if results else None,
+                    pose_landmarks,
                     current_exercise,
                     raw_confidence
                 )
                 latest_telemetry = telemetry
 
                 # RENDER ULTRA-DETAILED SKELETON & MESH
-                if results:
-                    # 1. Face Mesh Contours
-                    if results.face_landmarks:
-                        mp_drawing.draw_landmarks(
-                            image,
-                            results.face_landmarks,
-                            mp_holistic.FACEMESH_CONTOURS,
-                            landmark_drawing_spec=None,
-                            connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
-                        )
+                if face_landmarks:
+                    mp_drawing.draw_landmarks(
+                        image,
+                        face_landmarks,
+                        mp_holistic.FACEMESH_CONTOURS,
+                        landmark_drawing_spec=None,
+                        connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
+                    )
 
-                    # 2. Left Hand Finger Connections
-                    if results.left_hand_landmarks:
-                        mp_drawing.draw_landmarks(
-                            image,
-                            results.left_hand_landmarks,
-                            mp_holistic.HAND_CONNECTIONS,
-                            mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                            mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                        )
+                if left_hand_landmarks:
+                    mp_drawing.draw_landmarks(
+                        image,
+                        left_hand_landmarks,
+                        mp_holistic.HAND_CONNECTIONS,
+                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                    )
 
-                    # 3. Right Hand Finger Connections
-                    if results.right_hand_landmarks:
-                        mp_drawing.draw_landmarks(
-                            image,
-                            results.right_hand_landmarks,
-                            mp_holistic.HAND_CONNECTIONS,
-                            mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                            mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                        )
+                if right_hand_landmarks:
+                    mp_drawing.draw_landmarks(
+                        image,
+                        right_hand_landmarks,
+                        mp_holistic.HAND_CONNECTIONS,
+                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                    )
 
-                    # 4. Pose Skeleton Body Connections
-                    if results.pose_landmarks:
-                        pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
-                        pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
-                        
-                        mp_drawing.draw_landmarks(
-                            image,
-                            results.pose_landmarks,
-                            mp_holistic.POSE_CONNECTIONS,
-                            landmark_drawing_spec=pose_lm_spec,
-                            connection_drawing_spec=pose_conn_spec
-                        )
+                if pose_landmarks:
+                    pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
+                    pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
+                    
+                    mp_drawing.draw_landmarks(
+                        image,
+                        pose_landmarks,
+                        mp_holistic.POSE_CONNECTIONS,
+                        landmark_drawing_spec=pose_lm_spec,
+                        connection_drawing_spec=pose_conn_spec
+                    )
 
-                        lm = results.pose_landmarks.landmark
-                        
-                        # 5. DUAL VISUAL CAMERA GUIDE: RED CROSS FOR WRONG VS GREEN TARGET FOR CORRECT
-                        error_joints = telemetry.get('error_joints', [])
-                        target_guides = telemetry.get('target_guides', [])
+                    lm = pose_landmarks.landmark
+                    
+                    # 5. DUAL VISUAL CAMERA GUIDE: RED CROSS FOR WRONG VS GREEN TARGET FOR CORRECT
+                    error_joints = telemetry.get('error_joints', [])
+                    target_guides = telemetry.get('target_guides', [])
 
-                        # Render RED CROSS on error joints
-                        for ej in error_joints:
-                            if isinstance(ej, int) and ej < len(lm):
-                                cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
-                                cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
-                                cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
-                                cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
-                                cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
+                    # Render RED CROSS on error joints
+                    for ej in error_joints:
+                        if isinstance(ej, int) and ej < len(lm):
+                            cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
+                            cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
+                            cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
+                            cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
+                            cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
 
-                        # Render GREEN ARROW & TARGET GUIDELINE showing desired correction
-                        for guide in target_guides:
-                            from_idx = guide.get('idx')
-                            if from_idx < len(lm):
-                                cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
-                                tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
-                                cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
-                                cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
-                                cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
+                    # Render GREEN ARROW & TARGET GUIDELINE showing desired correction
+                    for guide in target_guides:
+                        from_idx = guide.get('idx')
+                        if from_idx < len(lm):
+                            cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
+                            tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
+                            cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
+                            cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
+                            cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
 
                 # Draw AI Telemetry overlay on video feed
                 cv2.rectangle(image, (0, 0), (w, 50), (15, 20, 30), -1)
