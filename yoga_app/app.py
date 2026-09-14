@@ -176,11 +176,8 @@ def generate_camera_frames():
             print("[!] No video fallback found. Operating synthetic frame mode...")
             cap = None
 
-    with mp_holistic.Holistic(
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
-    ) as holistic:
-        while True:
+    holistic = get_holistic_detector()
+    while True:
             try:
                 frame = None
                 if cap and cap.isOpened():
