@@ -176,7 +176,7 @@ function initAssessmentEngine() {
           .catch(err => {
             isSendingFrame = false;
           });
-        }, 150);
+        }, 250);
       })
       .catch(err => {
         console.warn('[!] Client camera not allowed or unavailable. Using server fallback feed:', err);

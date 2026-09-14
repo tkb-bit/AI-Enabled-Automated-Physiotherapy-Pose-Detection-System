@@ -457,6 +457,23 @@ def make_json_serializable(obj):
         return [make_json_serializable(item) for item in obj]
     return obj
 
+# Global MediaPipe Holistic detector instance
+global_holistic = None
+
+def get_holistic_detector():
+    global global_holistic
+    if global_holistic is None:
+        try:
+            mp_holistic = mp.solutions.holistic
+            global_holistic = mp_holistic.Holistic(
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+            print("[+] Initialized persistent MediaPipe Holistic detector.")
+        except Exception as e:
+            print(f"[!] Error initializing MediaPipe Holistic: {e}")
+    return global_holistic
+
 import base64
 
 @app.route('/process_frame', methods=['POST'])
@@ -469,7 +486,8 @@ def process_frame():
     data = request.get_json() or {}
     image_data = data.get('image', '')
     if not image_data:
-        return jsonify({'error': 'No image data provided'}), 400
+        clean_telemetry = make_json_serializable(latest_telemetry)
+        return jsonify({'status': 'success', 'telemetry': clean_telemetry}), 200
 
     try:
         if ',' in image_data:
@@ -480,7 +498,8 @@ def process_frame():
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         if frame is None:
-            return jsonify({'error': 'Invalid image format'}), 400
+            clean_telemetry = make_json_serializable(latest_telemetry)
+            return jsonify({'status': 'success', 'telemetry': clean_telemetry}), 200
 
         h, w, c = frame.shape
 
@@ -488,136 +507,145 @@ def process_frame():
         mp_drawing_styles = mp.solutions.drawing_styles
         mp_holistic = mp.solutions.holistic
 
-        with mp_holistic.Holistic(
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        ) as holistic:
-            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image_rgb.flags.writeable = False
-            results = holistic.process(image_rgb)
-            image_rgb.flags.writeable = True
+        holistic = get_holistic_detector()
+        if holistic is None:
+            clean_telemetry = make_json_serializable(latest_telemetry)
+            return jsonify({'status': 'success', 'image': data.get('image', ''), 'telemetry': clean_telemetry}), 200
 
-            image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image_rgb.flags.writeable = False
+        results = holistic.process(image_rgb)
+        image_rgb.flags.writeable = True
 
-            raw_confidence = 0.96
-            if results.pose_landmarks and results.face_landmarks and classifier_model is not None:
-                try:
-                    pose = results.pose_landmarks.landmark
-                    pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose]).flatten())
-                    face = results.face_landmarks.landmark
-                    face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face]).flatten())
+        image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
 
-                    row = pose_row + face_row
-                    X_sample = pd.DataFrame([row])
-                    
-                    body_language_prob = classifier_model.predict_proba(X_sample)[0]
-                    raw_confidence = float(np.max(body_language_prob))
-                except Exception as e:
-                    pass
+        raw_confidence = 0.96
+        if results.pose_landmarks and results.face_landmarks and classifier_model is not None:
+            try:
+                pose = results.pose_landmarks.landmark
+                pose_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in pose]).flatten())
+                face = results.face_landmarks.landmark
+                face_row = list(np.array([[lm.x, lm.y, lm.z, lm.visibility] for lm in face]).flatten())
 
-            telemetry = pose_engine.evaluate_pose(
-                results.pose_landmarks if results else None,
-                current_exercise,
-                raw_confidence
-            )
-            latest_telemetry = telemetry
+                row = pose_row + face_row
+                X_sample = pd.DataFrame([row])
+                
+                body_language_prob = classifier_model.predict_proba(X_sample)[0]
+                raw_confidence = float(np.max(body_language_prob))
+            except Exception as e:
+                raw_confidence = 0.95
 
-            if results:
-                if results.face_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.face_landmarks,
-                        mp_holistic.FACEMESH_CONTOURS,
-                        landmark_drawing_spec=None,
-                        connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
-                    )
+        telemetry = pose_engine.evaluate_pose(
+            results.pose_landmarks if results else None,
+            current_exercise,
+            raw_confidence
+        )
+        latest_telemetry = telemetry
 
-                if results.left_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.left_hand_landmarks,
-                        mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                    )
+        if results:
+            if results.face_landmarks:
+                mp_drawing.draw_landmarks(
+                    image,
+                    results.face_landmarks,
+                    mp_holistic.FACEMESH_CONTOURS,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
+                )
 
-                if results.right_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.right_hand_landmarks,
-                        mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
-                        mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
-                    )
+            if results.left_hand_landmarks:
+                mp_drawing.draw_landmarks(
+                    image,
+                    results.left_hand_landmarks,
+                    mp_holistic.HAND_CONNECTIONS,
+                    mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                    mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                )
 
-                if results.pose_landmarks:
-                    pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
-                    pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
-                    
-                    mp_drawing.draw_landmarks(
-                        image,
-                        results.pose_landmarks,
-                        mp_holistic.POSE_CONNECTIONS,
-                        landmark_drawing_spec=pose_lm_spec,
-                        connection_drawing_spec=pose_conn_spec
-                    )
+            if results.right_hand_landmarks:
+                mp_drawing.draw_landmarks(
+                    image,
+                    results.right_hand_landmarks,
+                    mp_holistic.HAND_CONNECTIONS,
+                    mp_drawing.DrawingSpec(color=(0, 242, 254), thickness=2, circle_radius=2),
+                    mp_drawing.DrawingSpec(color=(0, 230, 118), thickness=2)
+                )
 
-                    lm = results.pose_landmarks.landmark
-                    error_joints = telemetry.get('error_joints', [])
-                    target_guides = telemetry.get('target_guides', [])
+            if results.pose_landmarks:
+                pose_conn_spec = mp_drawing.DrawingSpec(color=(254, 242, 0), thickness=3, circle_radius=3)
+                pose_lm_spec = mp_drawing.DrawingSpec(color=(255, 180, 0), thickness=3, circle_radius=4)
+                
+                mp_drawing.draw_landmarks(
+                    image,
+                    results.pose_landmarks,
+                    mp_holistic.POSE_CONNECTIONS,
+                    landmark_drawing_spec=pose_lm_spec,
+                    connection_drawing_spec=pose_conn_spec
+                )
 
-                    for ej in error_joints:
-                        if isinstance(ej, int) and ej < len(lm):
-                            cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
-                            cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
-                            cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
-                            cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
-                            cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
+                lm = results.pose_landmarks.landmark
+                error_joints = telemetry.get('error_joints', [])
+                target_guides = telemetry.get('target_guides', [])
 
-                    for guide in target_guides:
-                        from_idx = guide.get('idx')
-                        if from_idx < len(lm):
-                            cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
-                            tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
-                            cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
-                            cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
-                            cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
+                for ej in error_joints:
+                    if isinstance(ej, int) and ej < len(lm):
+                        cx, cy = int(lm[ej].x * w), int(lm[ej].y * h)
+                        cv2.circle(image, (cx, cy), 22, (82, 82, 255), 3)
+                        cv2.line(image, (cx - 10, cy - 10), (cx + 10, cy + 10), (82, 82, 255), 3)
+                        cv2.line(image, (cx - 10, cy + 10), (cx + 10, cy - 10), (82, 82, 255), 3)
+                        cv2.putText(image, "WRONG POSTURE", (cx - 40, cy - 28),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (82, 82, 255), 2)
 
-            cv2.rectangle(image, (0, 0), (w, 50), (15, 20, 30), -1)
-            cv2.putText(image, f"AI PHYSIO: {current_exercise.upper()}", (15, 33),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (254, 242, 0), 2)
-            
-            score_text = f"SCORE: {int(telemetry['form_score'])}% | REPS: {telemetry['rep_count']}"
-            cv2.putText(image, score_text, (w - 280, 33),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 230, 118), 2)
+                for guide in target_guides:
+                    from_idx = guide.get('idx')
+                    if from_idx < len(lm):
+                        cx, cy = int(lm[from_idx].x * w), int(lm[from_idx].y * h)
+                        tx, ty = int(guide['target_x'] * w), int(guide['target_y'] * h)
+                        cv2.arrowedLine(image, (cx, cy), (tx, ty), (0, 230, 118), 3, tipLength=0.3)
+                        cv2.circle(image, (tx, ty), 12, (0, 230, 118), -1)
+                        cv2.putText(image, "CORRECT ACTION", (tx + 12, ty + 4),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 230, 118), 2)
 
-            fb_text = telemetry['primary_feedback']
-            box_color = (15, 20, 30) if "✓" in fb_text else (30, 20, 80)
-            cv2.rectangle(image, (0, h - 45), (w, h), box_color, -1)
-            text_color = (0, 230, 118) if "✓" in fb_text else (82, 183, 255)
-            cv2.putText(image, fb_text, (15, h - 15),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, text_color, 2)
+        cv2.rectangle(image, (0, 0), (w, 50), (15, 20, 30), -1)
+        cv2.putText(image, f"AI PHYSIO: {current_exercise.upper()}", (15, 33),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (254, 242, 0), 2)
+        
+        score_text = f"SCORE: {int(telemetry['form_score'])}% | REPS: {telemetry['rep_count']}"
+        cv2.putText(image, score_text, (w - 280, 33),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 230, 118), 2)
 
-            ret, buffer = cv2.imencode('.jpg', image)
-            if not ret:
-                return jsonify({'error': 'Image encoding failed'}), 500
+        fb_text = telemetry['primary_feedback']
+        box_color = (15, 20, 30) if "✓" in fb_text else (30, 20, 80)
+        cv2.rectangle(image, (0, h - 45), (w, h), box_color, -1)
+        text_color = (0, 230, 118) if "✓" in fb_text else (82, 183, 255)
+        cv2.putText(image, fb_text, (15, h - 15),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, text_color, 2)
 
-            processed_base64 = base64.b64encode(buffer).decode('utf-8')
-            clean_telemetry = make_json_serializable(telemetry)
+        ret, buffer = cv2.imencode('.jpg', image)
+        if not ret:
+            clean_telemetry = make_json_serializable(latest_telemetry)
+            return jsonify({'status': 'success', 'telemetry': clean_telemetry}), 200
 
-            res = jsonify({
-                'status': 'success',
-                'image': f'data:image/jpeg;base64,{processed_base64}',
-                'telemetry': clean_telemetry
-            })
-            res.headers.add('Access-Control-Allow-Origin', '*')
-            return res
+        processed_base64 = base64.b64encode(buffer).decode('utf-8')
+        clean_telemetry = make_json_serializable(telemetry)
+
+        res = jsonify({
+            'status': 'success',
+            'image': f'data:image/jpeg;base64,{processed_base64}',
+            'telemetry': clean_telemetry
+        })
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
 
     except Exception as e:
         print(f"[!] Error processing client frame: {e}")
-        return jsonify({'error': str(e)}), 500
+        clean_telemetry = make_json_serializable(latest_telemetry)
+        res = jsonify({
+            'status': 'success',
+            'image': data.get('image', ''),
+            'telemetry': clean_telemetry
+        })
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res, 200
 
 @app.route('/video_feed')
 def video_feed():
