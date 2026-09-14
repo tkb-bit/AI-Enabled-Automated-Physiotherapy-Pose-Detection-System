@@ -145,10 +145,15 @@ function initAssessmentEngine() {
         const captureCtx = captureCanvas.getContext('2d');
 
         clientFrameInterval = setInterval(() => {
-          if (isSendingFrame || clientWebcam.paused || clientWebcam.ended) return;
+          if (isSendingFrame || !clientWebcam || clientWebcam.paused || clientWebcam.ended || clientWebcam.readyState < 2) return;
 
-          captureCtx.drawImage(clientWebcam, 0, 0, 640, 480);
-          const base64Img = captureCanvas.toDataURL('image/jpeg', 0.5);
+          const w = clientWebcam.videoWidth || 640;
+          const h = clientWebcam.videoHeight || 480;
+          captureCanvas.width = w;
+          captureCanvas.height = h;
+
+          captureCtx.drawImage(clientWebcam, 0, 0, w, h);
+          const base64Img = captureCanvas.toDataURL('image/jpeg', 0.6);
           isSendingFrame = true;
 
           fetch('/process_frame', {
