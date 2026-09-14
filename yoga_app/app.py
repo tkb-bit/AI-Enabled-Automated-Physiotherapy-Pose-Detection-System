@@ -12,8 +12,23 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     flash, session, Response, jsonify, g, send_file, send_from_directory
 )
-from werkzeug.security import generate_password_hash, check_password_hash
 import mediapipe as mp
+try:
+    import mediapipe.solutions.holistic as mp_holistic
+    import mediapipe.solutions.pose as mp_pose
+    import mediapipe.solutions.drawing_utils as mp_drawing
+    import mediapipe.solutions.drawing_styles as mp_drawing_styles
+except Exception:
+    try:
+        from mediapipe.python.solutions import holistic as mp_holistic
+        from mediapipe.python.solutions import pose as mp_pose
+        from mediapipe.python.solutions import drawing_utils as mp_drawing
+        from mediapipe.python.solutions import drawing_styles as mp_drawing_styles
+    except Exception as e:
+        mp_holistic = getattr(mp, 'solutions', None) and getattr(mp.solutions, 'holistic', None)
+        mp_pose = getattr(mp, 'solutions', None) and getattr(mp.solutions, 'pose', None)
+        mp_drawing = getattr(mp, 'solutions', None) and getattr(mp.solutions, 'drawing_utils', None)
+        mp_drawing_styles = getattr(mp, 'solutions', None) and getattr(mp.solutions, 'drawing_styles', None)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from pose_engine import BiomechanicalPoseEngine
@@ -120,10 +135,6 @@ def generate_camera_frames():
     
     if classifier_model is None:
         load_ml_model()
-
-    mp_drawing = mp.solutions.drawing_utils
-    mp_drawing_styles = mp.solutions.drawing_styles
-    mp_holistic = mp.solutions.holistic
 
     # Attempt hardware camera #0 safely
     cap = None
@@ -463,9 +474,8 @@ global_pose = None
 
 def get_holistic_detector():
     global global_holistic
-    if global_holistic is None:
+    if global_holistic is None and mp_holistic is not None:
         try:
-            mp_holistic = mp.solutions.holistic
             global_holistic = mp_holistic.Holistic(
                 static_image_mode=True,
                 model_complexity=1,
@@ -479,9 +489,8 @@ def get_holistic_detector():
 
 def get_pose_detector():
     global global_pose
-    if global_pose is None:
+    if global_pose is None and mp_pose is not None:
         try:
-            mp_pose = mp.solutions.pose
             global_pose = mp_pose.Pose(
                 static_image_mode=True,
                 model_complexity=1,
@@ -521,11 +530,6 @@ def process_frame():
             return jsonify({'status': 'success', 'telemetry': clean_telemetry}), 200
 
         h, w, c = frame.shape
-
-        mp_drawing = mp.solutions.drawing_utils
-        mp_drawing_styles = mp.solutions.drawing_styles
-        mp_holistic = mp.solutions.holistic
-        mp_pose = mp.solutions.pose
 
         holistic = get_holistic_detector()
         pose_fallback = get_pose_detector()
